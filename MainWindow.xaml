@@ -7,7 +7,7 @@
         mc:Ignorable="d"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent" OpacityMask="White"
         FontFamily="Microsoft YaHei"
-        Title="MainWindow" Height="26" Width="180" MinHeight="26" MinWidth="180" ResizeMode="CanResizeWithGrip"
+        Title="iNeedMyMoneyBack" Height="26" Width="180" MinHeight="26" MinWidth="180" ResizeMode="CanResizeWithGrip"
          >
     <Window.ContextMenu>
         <ContextMenu Name="menu" Style="{StaticResource CustomContextMenu}">
