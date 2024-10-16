@@ -23,6 +23,13 @@ namespace iNeedMyMoneyBack
             NickName = nickName;
             BuyPrice = buyPrice;
         }
+        public StockConfig(string code, string nickName, double buyPrice, int buyCount)
+        {
+            Code = code;
+            NickName = nickName;
+            BuyPrice = buyPrice;
+            BuyCount = buyCount;
+        }
         public string Code
         {
             get; set;
@@ -36,6 +43,10 @@ namespace iNeedMyMoneyBack
             get; set;
         }
         public double BuyPrice
+        {
+            get; set;
+        }
+        public int BuyCount
         {
             get; set;
         }

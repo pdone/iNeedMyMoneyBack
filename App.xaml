@@ -6,6 +6,7 @@
     <Application.Resources>
         <ResourceDictionary>
             <Style TargetType="ContextMenu" x:Key="CustomContextMenu">
+                <Setter Property="FontFamily" Value="阿里巴巴普惠体 3.0,微软雅黑,Arial"></Setter>
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="ContextMenu">

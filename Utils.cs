@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -45,42 +46,34 @@ namespace iNeedMyMoneyBack
         #region 多语言
         public static Dictionary<string, Dictionary<string, string>> LoadLangData()
         {
-            var dict = new Dictionary<string, Dictionary<string, string>>();
-            Dictionary<string, string> en = new Dictionary<string, string>
-                {
-                    { "menu_ver", "Version" },
-                    { "menu_exit", "Exit" },
-                    { "menu_dark", "Dark mode" },
-                    { "menu_topmost", "Topmost" },
-                    { "menu_conf", "Open config" },
-                    { "menu_conf_file", "Open config file" },
-                    { "menu_show_in_taskbar", "Show in taskbar" },
-                    { "menu_data_roll", "Data roll" },
-                    { "btn_close", "Close" },
-                    { "dgc_code", "Code" },
-                    { "dgc_name", "Name" },
-                    { "dgc_nickname", "NickName" },
-                    { "dgc_buyprice", "BuyPrice" },
-                };
-            Dictionary<string, string> zh_CN = new Dictionary<string, string>
-                {
-                    { "menu_ver", "版本" },
-                    { "menu_exit", "退出" },
-                    { "menu_dark", "深色模式" },
-                    { "menu_topmost", "置顶" },
-                    { "menu_conf", "打开配置" },
-                    { "menu_conf_file", "打开配置文件" },
-                    { "menu_show_in_taskbar", "在任务栏显示" },
-                    { "menu_data_roll", "数据滚动显示" },
-                    { "btn_close", "关闭" },
-                    { "dgc_code", "代码" },
-                    { "dgc_name", "名称" },
-                    { "dgc_nickname", "别名" },
-                    { "dgc_buyprice", "买价" },
-                };
+            var langs = new Dictionary<string, string[]>
+            {
+                ["menu_ver"] = ["Version", "版本"],
+                ["menu_exit"] = ["Exit", "退出"],
+                ["menu_dark"] = ["Dark mode", "深色模式"],
+                ["menu_topmost"] = ["Topmost", "置顶"],
+                ["menu_conf"] = ["Open config", "打开配置"],
+                ["menu_conf_file"] = ["Open config file", "打开配置文件"],
+                ["menu_show_in_taskbar"] = ["Show in taskbar", "在任务栏显示"],
+                ["menu_data_roll"] = ["Data roll", "数据滚动显示"],
+                ["btn_close"] = ["Close", "关闭"],
+                ["col_code"] = ["Code", "代码"],
+                ["col_name"] = ["Name", "名称"],
+                ["col_nickname"] = ["NickName", "别名"],
+                ["col_buyprice"] = ["BuyPrice", "买价"],
+                ["col_buycount"] = ["BuyCount", "数量"]
+            };
 
-            dict.Add("en", en);
-            dict.Add("zh_CN", zh_CN);
+            var en = langs.Select(x => new KeyValuePair<string, string>(x.Key, x.Value[0]))
+                .ToDictionary(x => x.Key, x => x.Value);
+            var zh_CN = langs.Select(x => new KeyValuePair<string, string>(x.Key, x.Value[1]))
+                .ToDictionary(x => x.Key, x => x.Value); ;
+
+            var dict = new Dictionary<string, Dictionary<string, string>>
+            {
+                { "en", en },
+                { "zh_CN", zh_CN }
+            };
             return dict;
         }
         #endregion

@@ -5,8 +5,8 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:iNeedMyMoneyBack"
         mc:Ignorable="d"
+        FontFamily="阿里巴巴普惠体 3.0,微软雅黑,Arial"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent" OpacityMask="White"
-        FontFamily="Microsoft YaHei"
         Title="iNeedMyMoneyBack" Height="26" Width="180" MinHeight="26" MinWidth="180" ResizeMode="CanResizeWithGrip"
          >
     <Window.ContextMenu>

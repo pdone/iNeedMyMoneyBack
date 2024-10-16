@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Media;
 
 namespace iNeedMyMoneyBack
@@ -15,15 +16,18 @@ namespace iNeedMyMoneyBack
         {
             InitializeComponent();
             MouseDown += (sender, e) => Utils.DragWindow(this);
+            MinWidth = 265;
+            MinHeight = 180;
             _conf = MainWindow._conf;
             _i18n = MainWindow._i18n;
 
             Opacity = _conf.Opacity;
             btn_close.Content = _i18n[_conf.Lang][btn_close.Name];
-            dataGrid.Columns[0].Header = _i18n[_conf.Lang]["dgc_code"];
-            dataGrid.Columns[1].Header = _i18n[_conf.Lang]["dgc_name"];
-            dataGrid.Columns[2].Header = _i18n[_conf.Lang]["dgc_nickname"];
-            dataGrid.Columns[3].Header = _i18n[_conf.Lang]["dgc_buyprice"];
+            dataGrid.Columns[0].Header = _i18n[_conf.Lang]["col_code"];
+            dataGrid.Columns[1].Header = _i18n[_conf.Lang]["col_name"];
+            dataGrid.Columns[2].Header = _i18n[_conf.Lang]["col_nickname"];
+            dataGrid.Columns[3].Header = _i18n[_conf.Lang]["col_buyprice"];
+            dataGrid.Columns[4].Header = _i18n[_conf.Lang]["col_buycount"];
 
             dataGrid.Foreground = MainWindow.color_fg;
             dataGrid.Background = MainWindow.color_bg;

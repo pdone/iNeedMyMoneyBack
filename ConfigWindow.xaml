@@ -8,6 +8,7 @@
         WindowStyle="None" AllowsTransparency="True" Background="Transparent" OpacityMask="White"
         Title="ConfigWindow" Height="150" Width="200" ResizeMode="CanResizeWithGrip"
         MinHeight="150" MinWidth="200"
+        FontFamily="阿里巴巴普惠体 3.0,微软雅黑,Arial"
         >
     <Grid x:Name="grid" Background="Transparent">
         <Border Name="border" BorderBrush="#000" BorderThickness="1" CornerRadius="0,10,0,10">
@@ -37,6 +38,7 @@
                         <DataGridTextColumn Header="Name" Binding="{Binding Name}" IsReadOnly="True"/>
                         <DataGridTextColumn Header="NickName" Binding="{Binding NickName}" />
                         <DataGridTextColumn Header="BuyPrice" Binding="{Binding BuyPrice}" />
+                        <DataGridTextColumn Header="BuyCount" Binding="{Binding BuyCount}" />
                     </DataGrid.Columns>
                 </DataGrid>
             </Grid>

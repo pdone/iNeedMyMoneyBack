@@ -146,10 +146,15 @@ namespace iNeedMyMoneyBack
                 UpdateUI(() =>
                 {
                     var rr = $"{(stock.NickName.IsNullOrWhiteSpace() ? res.StockName : stock.NickName)}" +
-                    $" {res.CurrentPrice:f3} {res.PriceChangePercent}%";
+                    $" {res.CurrentPrice:f2} {res.PriceChangePercent}%";
                     if (stock.BuyPrice > 0)
                     {
-                        rr += (stock.BuyPrice - res.CurrentPrice).ToString(" -0.000");
+                        var makeMoney = res.CurrentPrice - stock.BuyPrice;
+                        if(stock.BuyCount > 0)
+                        {
+                            makeMoney *= stock.BuyCount; 
+                        }
+                        rr += $" {makeMoney:f2}";
                     }
 
                     if (_conf.DataRoll)
