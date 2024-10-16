@@ -60,6 +60,14 @@ namespace iNeedMyMoneyBack
         /// </summary>
         public string Lang { get; set; } = "zh_CN";
         /// <summary>
+        /// 在任务栏显示
+        /// </summary>
+        public bool ShowInTaskbar { get; set; } = true;
+        /// <summary>
+        /// 滚动展示数据
+        /// </summary>
+        public bool DataRoll { get; set; } = true;
+        /// <summary>
         /// 透明度
         /// </summary>
         public double Opacity { get; set; } = 0.8;

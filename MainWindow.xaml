@@ -14,8 +14,11 @@
             <MenuItem Name="menu_ver" Click="MenuItem_Click"/>
             <Separator/>
             <MenuItem Name="menu_conf" Click="MenuItem_Click"/>
+            <MenuItem Name="menu_conf_file" Click="MenuItem_Click"/>
             <MenuItem Name="menu_dark" Click="MenuItem_Click"/>
             <MenuItem Name="menu_topmost" Click="MenuItem_Click"/>
+            <MenuItem Name="menu_show_in_taskbar" Click="MenuItem_Click"/>
+            <MenuItem Name="menu_data_roll" Click="MenuItem_Click"/>
             <Separator/>
             <MenuItem Name="menu_exit" Click="MenuItem_Click"/>
         </ContextMenu>

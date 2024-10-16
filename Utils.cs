@@ -53,6 +53,9 @@ namespace iNeedMyMoneyBack
                     { "menu_dark", "Dark mode" },
                     { "menu_topmost", "Topmost" },
                     { "menu_conf", "Open config" },
+                    { "menu_conf_file", "Open config file" },
+                    { "menu_show_in_taskbar", "Show in taskbar" },
+                    { "menu_data_roll", "Data roll" },
                     { "btn_close", "Close" },
                     { "dgc_code", "Code" },
                     { "dgc_name", "Name" },
@@ -66,6 +69,9 @@ namespace iNeedMyMoneyBack
                     { "menu_dark", "深色模式" },
                     { "menu_topmost", "置顶" },
                     { "menu_conf", "打开配置" },
+                    { "menu_conf_file", "打开配置文件" },
+                    { "menu_show_in_taskbar", "在任务栏显示" },
+                    { "menu_data_roll", "数据滚动显示" },
                     { "btn_close", "关闭" },
                     { "dgc_code", "代码" },
                     { "dgc_name", "名称" },
@@ -159,6 +165,43 @@ namespace iNeedMyMoneyBack
             SendMessage(new WindowInteropHelper(window).Handle, WM_SYSCOMMAND, SC_MOVE + HTCAPTION, 0);
         }
         #endregion
+
+        /// <summary>  
+        /// 判断当前时间是否在A股交易时间内（不包括节假日检查）  
+        /// </summary>  
+        /// <returns>如果在交易时间内返回true，否则返回false</returns>  
+        public static bool IsTradingTime()
+        {
+            DateTime now = DateTime.Now;
+
+            // 检查是否是工作日（这里简单认为是周一到周五，实际可能需要考虑节假日）  
+            DayOfWeek dayOfWeek = now.DayOfWeek;
+            if (dayOfWeek < DayOfWeek.Monday || dayOfWeek > DayOfWeek.Friday)
+            {
+                return false; // 不是工作日，不交易  
+            }
+
+            // 定义交易时间  
+            DateTime startTime = new DateTime(now.Year, now.Month, now.Day, 9, 30, 0);
+            DateTime endTimeMorning = new DateTime(now.Year, now.Month, now.Day, 11, 30, 0);
+            DateTime startTimeAfternoon = new DateTime(now.Year, now.Month, now.Day, 13, 0, 0);
+            DateTime endTime = new DateTime(now.Year, now.Month, now.Day, 15, 0, 0);
+
+            // 判断是否在上午交易时间段内  
+            if (now >= startTime && now <= endTimeMorning)
+            {
+                return true;
+            }
+
+            // 判断是否在下午交易时间段内  
+            if (now >= startTimeAfternoon && now <= endTime)
+            {
+                return true;
+            }
+
+            // 如果都不满足，则不在交易时间内  
+            return false;
+        }
     }
 
     #region 日志

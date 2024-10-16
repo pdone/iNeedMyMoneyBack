@@ -2,8 +2,10 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -23,7 +25,8 @@ namespace iNeedMyMoneyBack
         public static Config _conf = new Config();
         public static Dictionary<string, Dictionary<string, string>> _i18n;
 
-        static int codeIndex = 0;
+        private static int codeIndex = 0;
+        private static Dictionary<int, string> codeDatas = new Dictionary<int, string>();
 
         readonly BackgroundWorker worker = new BackgroundWorker()
         {
@@ -80,23 +83,49 @@ namespace iNeedMyMoneyBack
             menu.Opacity = _conf.Opacity;
             Opacity = _conf.Opacity;
             Topmost = _conf.Topmost;
+            ShowInTaskbar = _conf.ShowInTaskbar;
+            menu_show_in_taskbar.IsChecked = _conf.ShowInTaskbar;
+            menu_data_roll.IsChecked = _conf.DataRoll;
             UpdateColor();
         }
 
         private void InitLang()
         {
-            Assembly asm = Assembly.GetExecutingAssembly();
-            FileVersionInfo fvi = FileVersionInfo.GetVersionInfo(asm.Location);
+            var asm = Assembly.GetExecutingAssembly();
+            var fvi = FileVersionInfo.GetVersionInfo(asm.Location);
             menu_ver.Header = $"{_i18n[_conf.Lang][menu_ver.Name]} {fvi.ProductVersion}";
-            menu_exit.Header = $"{_i18n[_conf.Lang][menu_exit.Name]}";
-            menu_dark.Header = $"{_i18n[_conf.Lang][menu_dark.Name]}";
-            menu_topmost.Header = $"{_i18n[_conf.Lang][menu_topmost.Name]}";
-            menu_conf.Header = $"{_i18n[_conf.Lang][menu_conf.Name]}";
+            SetMenuItemHeader(menu_exit);
+            SetMenuItemHeader(menu_dark);
+            SetMenuItemHeader(menu_topmost);
+            SetMenuItemHeader(menu_conf);
+            SetMenuItemHeader(menu_exit);
+            SetMenuItemHeader(menu_conf_file);
+            SetMenuItemHeader(menu_show_in_taskbar);
+            SetMenuItemHeader(menu_data_roll);
         }
+
+        private void SetMenuItemHeader(MenuItem menuItem)
+        {
+            if (_i18n.ContainsKey(_conf.Lang) && _i18n[_conf.Lang].ContainsKey(menuItem.Name))
+            {
+                menuItem.Header = _i18n[_conf.Lang][menuItem.Name];
+            }
+        }
+
         private async void DoWork(object sender, EventArgs e)
         {
             while (!worker.IsBusy)
             {
+                if (!Utils.IsTradingTime())
+                {
+                    UpdateUI(() =>
+                    {
+                        lb.Content = $"Non-trading";
+                    });
+                    await Task.Delay(30000);
+                    continue;
+                }
+
                 if (codeIndex > _conf.Stocks.Count - 1)
                 {
                     codeIndex = 0;
@@ -114,20 +143,49 @@ namespace iNeedMyMoneyBack
                 {
                     stock.Name = res.StockName;
                 }
-
-                bool isHighlight = false;
-                if (stock.BuyPrice > 0 && stock.BuyPrice <= res.CurrentPrice)
-                {
-                    isHighlight = true;
-                    Logger.Info($"{stock.NickName} have a goodnews!");
-                }
-
                 UpdateUI(() =>
                 {
-                    lb.Content = $"{(stock.NickName.IsNullOrWhiteSpace() ? res.StockName : stock.NickName)}" +
-                    $" {res.CurrentPrice:f2} " +
-                    (stock.BuyPrice > 0 ? stock.BuyPrice.ToString("f2") : string.Empty);
-                    UpdateColor(isHighlight);
+                    var rr = $"{(stock.NickName.IsNullOrWhiteSpace() ? res.StockName : stock.NickName)}" +
+                    $" {res.CurrentPrice:f3} {res.PriceChangePercent}%";
+                    if (stock.BuyPrice > 0)
+                    {
+                        rr += (stock.BuyPrice - res.CurrentPrice).ToString(" -0.000");
+                    }
+
+                    if (_conf.DataRoll)
+                    {
+                        var sb = new StringBuilder();
+                        sb.Insert(0, rr);
+                        var lineCount = sb.ToString().Count(x => x.Equals('\n'));
+                        if (lineCount >= _conf.Stocks.Count)
+                        {
+                            RemoveLastLine(sb);
+                        }
+                        lb.Content = sb.ToString();
+                    }
+                    else
+                    {
+                        if (codeDatas.ContainsKey(codeIndex))
+                        {
+                            codeDatas[codeIndex] = rr;
+                        }
+                        else
+                        {
+                            codeDatas.Add(codeIndex, rr);
+                        }
+                        var list = codeDatas.OrderBy(x => x.Key).Select(x => x.Value);
+                        lb.Content = string.Join(Environment.NewLine, list);
+                    }
+
+                    //(stock.BuyPrice > 0 ? stock.BuyPrice.ToString("f2") : string.Empty);
+                    if (res.CurrentPrice >= res.PriceLimitUp)
+                    {
+                        UpdateColor(true);
+                    }
+                    else if (res.CurrentPrice <= res.PriceLimitDown)
+                    {
+                        UpdateColor(true, true);
+                    }
                 });
 
                 codeIndex++;
@@ -140,6 +198,19 @@ namespace iNeedMyMoneyBack
             }
         }
 
+        static void RemoveLastLine(StringBuilder sb)
+        {
+            int lastIndex = sb.ToString().LastIndexOf('\n');
+            if (lastIndex != -1)
+            {
+                sb.Remove(lastIndex, sb.Length - lastIndex);
+            }
+            else if (sb.Length > 0) // 如果没有换行符，整个字符串就是最后一行
+            {
+                sb.Clear();
+            }
+        }
+
         private async Task Delay(int ms = 2000)
         {
             await Task.Delay(_conf.Interval < 2 ? ms : _conf.Interval * 1000);
@@ -148,7 +219,7 @@ namespace iNeedMyMoneyBack
         public static Brush color_bg;
         public static Brush color_fg;
 
-        private void UpdateColor(bool isHighlight = false)
+        private void UpdateColor(bool isHighlight = false, bool isLimitStop = false)
         {
             if (_conf.DarkMode)
             {
@@ -168,8 +239,16 @@ namespace iNeedMyMoneyBack
 
             if (isHighlight)
             {
-                lb.Foreground = new SolidColorBrush(Colors.Yellow);
-                border.Background = new SolidColorBrush(Color.FromRgb(234, 85, 20));
+                if (isLimitStop)
+                {
+                    lb.Foreground = color_fg;
+                    border.Background = new SolidColorBrush(Colors.DarkGreen);
+                }
+                else
+                {
+                    lb.Foreground = new SolidColorBrush(Colors.Yellow);
+                    border.Background = new SolidColorBrush(Color.FromRgb(234, 20, 62));
+                }
             }
         }
 
@@ -235,6 +314,19 @@ namespace iNeedMyMoneyBack
                         {
                             Utils.SaveConfig(_conf);
                         }
+                        break;
+                    case "menu_conf_file":
+                        var fullPath = Path.Combine(Utils.UserDataPath, "config.json");
+                        Process.Start(fullPath);
+                        break;
+                    case "menu_show_in_taskbar":
+                        _conf.ShowInTaskbar = !_conf.ShowInTaskbar;
+                        menu_show_in_taskbar.IsChecked = _conf.ShowInTaskbar;
+                        ShowInTaskbar = _conf.ShowInTaskbar;
+                        break;
+                    case "menu_data_roll":
+                        _conf.DataRoll = !_conf.DataRoll;
+                        menu_data_roll.IsChecked = _conf.DataRoll;
                         break;
                     case "menu_ver":
                     default:
