@@ -16,6 +16,8 @@
                 <Button x:Name="btn_close" Content="Close" Width="50" Height="20" Margin="126,0,0,5" Click="btn_close_Click" VerticalAlignment="Bottom" HorizontalAlignment="Left" RenderTransformOrigin="0.004,0.465"/>
                 <DataGrid x:Name="dataGrid" Margin="0,10,0,30" AutoGenerateColumns="False"
                           HeadersVisibility="Column"
+                          ScrollViewer.HorizontalScrollBarVisibility="Hidden"
+                          ScrollViewer.VerticalScrollBarVisibility="Hidden"
                           >
                     <DataGrid.Style>
                         <Style TargetType="DataGrid">

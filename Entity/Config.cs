@@ -50,6 +50,7 @@ namespace iNeedMyMoneyBack
         {
             get; set;
         }
+        public string DiaplayName => string.IsNullOrWhiteSpace(NickName) ? Name : NickName;
     }
 
     public class Config
