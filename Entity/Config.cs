@@ -56,6 +56,18 @@ public class StockConfig
 public class Config
 {
     /// <summary>
+    /// 调试模式
+    /// </summary>
+    public bool Debug { get; set; } = false;
+    /// <summary>
+    /// 数据接口
+    /// </summary>
+    public string Api { get; set; } = "http://qt.gtimg.cn";
+    /// <summary>
+    /// UA
+    /// </summary>
+    public string UserAgent { get; set; } = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 Edg/126.0.0.0";
+    /// <summary>
     /// 暗色模式
     /// </summary>
     public bool DarkMode { get; set; } = false;
@@ -87,7 +99,8 @@ public class Config
     public double Top { get; set; } = 200;
     public double Width { get; set; } = 180;
     public double Height { get; set; } = 26;
-
+    public double ConfigWindowWidth { get; set; } = 200;
+    public double ConfigWindowHeight { get; set; } = 165;
     public List<StockConfig> Stocks { get; set; } = [new StockConfig("sh000001", "上证指数")];
 
     public Dictionary<string, bool> FieldControl

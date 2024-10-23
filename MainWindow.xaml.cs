@@ -23,7 +23,6 @@ public partial class MainWindow : Window
     public static Dictionary<string, Dictionary<string, string>> g_i18n;
     private static int g_codeIndex = 0;
     private static readonly Dictionary<string, string> g_codeDatas = [];
-    private static readonly bool g_isDebug = false;// 调试模式
     private static string g_fieldName;// 字段名称
     private readonly BackgroundWorker g_worker = new()
     {
@@ -70,8 +69,8 @@ public partial class MainWindow : Window
 
         if (g_client == null)
         {
-            g_client = new RestClient("http://qt.gtimg.cn");
-            g_client.AddDefaultHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 Edg/126.0.0.0");
+            g_client = new RestClient(g_conf.Api);
+            g_client.AddDefaultHeader("User-Agent", g_conf.UserAgent);
         }
 
         MouseDown += (sender, e) => Utils.DragWindow(this);
@@ -214,7 +213,7 @@ public partial class MainWindow : Window
     {
         while (!g_worker.IsBusy)
         {
-            if (!Utils.IsTradingTime() && !g_isDebug)// 非交易时间
+            if (!Utils.IsTradingTime() && !g_conf.Debug)// 非交易时间
             {
                 UpdateUI(g_i18n[g_conf.Lang]["ui_nontrading"]);
                 await Delay(30000);

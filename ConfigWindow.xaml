@@ -7,7 +7,7 @@
         Title="ConfigWindow"
         Width="270"
         Height="230"
-        MinWidth="200"
+        MinWidth="270"
         MinHeight="165"
         AllowsTransparency="True"
         Background="Transparent"
@@ -87,6 +87,7 @@
                     <DataGrid.ColumnHeaderStyle>
                         <Style TargetType="DataGridColumnHeader">
                             <Setter Property="BorderThickness" Value="0,0,0,1" />
+                            <Setter Property="HorizontalContentAlignment" Value="Center" />
                         </Style>
                     </DataGrid.ColumnHeaderStyle>
                     <DataGrid.CellStyle>

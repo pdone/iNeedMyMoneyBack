@@ -7,7 +7,6 @@ using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Interop;
-using Path = System.IO.Path;
 
 namespace iNeedMyMoneyBack;
 
