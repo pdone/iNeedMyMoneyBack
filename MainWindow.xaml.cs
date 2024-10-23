@@ -18,16 +18,28 @@ namespace iNeedMyMoneyBack;
 /// </summary>
 public partial class MainWindow : Window
 {
-    private RestClient _client;
-    public static Config _conf = new();
-    public static Dictionary<string, Dictionary<string, string>> _i18n;
-
-    private static int codeIndex = 0;
-    private static readonly Dictionary<string, string> codeDatas = [];
-    private readonly BackgroundWorker worker = new()
+    private RestClient g_client;
+    public static Config g_conf = new();
+    public static Dictionary<string, Dictionary<string, string>> g_i18n;
+    private static int g_codeIndex = 0;
+    private static readonly Dictionary<string, string> g_codeDatas = [];
+    private static readonly bool g_isDebug = false;// 调试模式
+    private static string g_fieldName;// 字段名称
+    private readonly BackgroundWorker g_worker = new()
     {
         WorkerSupportsCancellation = true,
     };
+
+    public struct Symbols
+    {
+        public const string ArrowRight = "→";
+        public const string ArrowLeft = "←";
+        public const string ArrowLeftRight = "↔";
+        public const string ArrowUp = "↑";
+        public const string ArrowUpDown = "↕";
+        public const string Wave = "~";
+
+    }
 
     public enum UIStatus
     {
@@ -45,34 +57,34 @@ public partial class MainWindow : Window
 
     private void Init()
     {
-        _i18n = Utils.LoadLangData();
-        _conf = Utils.LoadConfig();
+        g_i18n = Utils.LoadLangData();
+        g_conf = Utils.LoadConfig();
 
-        if (_conf != null && _conf.Stocks.Count == 0)
+        if (g_conf != null && g_conf.Stocks.Count == 0)
         {
-            _conf.Stocks.Add(new StockConfig("sh000001", "上证指数", 3200));
-            _conf.Stocks.Add(new StockConfig("sz399001"));
+            g_conf.Stocks.Add(new StockConfig("sh000001", "上证指数", 3200));
+            g_conf.Stocks.Add(new StockConfig("sz399001"));
         }
 
         InitUI();
 
-        if (_client == null)
+        if (g_client == null)
         {
-            _client = new RestClient("http://qt.gtimg.cn");
-            _client.AddDefaultHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 Edg/126.0.0.0");
+            g_client = new RestClient("http://qt.gtimg.cn");
+            g_client.AddDefaultHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 Edg/126.0.0.0");
         }
 
         MouseDown += (sender, e) => Utils.DragWindow(this);
         Closing += (sender, e) =>
         {
-            _conf.Left = Left;
-            _conf.Top = Top;
-            _conf.Width = Width;
-            _conf.Height = Height;
-            Utils.SaveConfig(_conf);
+            g_conf.Left = Left;
+            g_conf.Top = Top;
+            g_conf.Width = Width;
+            g_conf.Height = Height;
+            Utils.SaveConfig(g_conf);
         };
         DoWork(null, null);
-        worker.DoWork += DoWork;
+        g_worker.DoWork += DoWork;
     }
 
     /// <summary>
@@ -80,27 +92,28 @@ public partial class MainWindow : Window
     /// </summary>
     private void InitUI()
     {
-        Width = _conf.Width;
-        Height = _conf.Height;
-        Left = _conf.Left;
-        Top = _conf.Top;
-        menu_dark.IsChecked = _conf.DarkMode;
-        menu_topmost.IsChecked = _conf.Topmost;
-        menu.Opacity = _conf.Opacity;
-        Opacity = _conf.Opacity;
-        Topmost = _conf.Topmost;
-        ShowInTaskbar = _conf.ShowInTaskbar;
-        menu_show_in_taskbar.IsChecked = _conf.ShowInTaskbar;
-        menu_data_roll.IsChecked = _conf.DataRoll;
+        Width = g_conf.Width;
+        Height = g_conf.Height;
+        Left = g_conf.Left;
+        Top = g_conf.Top;
+        menu_dark.IsChecked = g_conf.DarkMode;
+        menu_topmost.IsChecked = g_conf.Topmost;
+        menu.Opacity = g_conf.Opacity;
+        Opacity = g_conf.Opacity;
+        Topmost = g_conf.Topmost;
+        ShowInTaskbar = g_conf.ShowInTaskbar;
+        menu_show_in_taskbar.IsChecked = g_conf.ShowInTaskbar;
+        menu_data_roll.IsChecked = g_conf.DataRoll;
         InitColor();
         InitLang();
+        InitFiledName();
     }
     /// <summary>
     /// 初始化配色
     /// </summary>
     private void InitColor()
     {
-        if (_conf.DarkMode)
+        if (g_conf.DarkMode)
         {
             color_bg = new SolidColorBrush(Color.FromRgb(22, 22, 22));
             color_fg = new SolidColorBrush(Color.FromRgb(222, 222, 222));
@@ -123,7 +136,7 @@ public partial class MainWindow : Window
     {
         var asm = Assembly.GetExecutingAssembly();
         var fvi = FileVersionInfo.GetVersionInfo(asm.Location);
-        menu_ver.Header = $"{_i18n[_conf.Lang][menu_ver.Name]} {fvi.ProductVersion}";
+        menu_ver.Header = $"{g_i18n[g_conf.Lang][menu_ver.Name]} {fvi.ProductVersion}";
         SetMenuItemHeader(menu_exit);
         SetMenuItemHeader(menu_dark);
         SetMenuItemHeader(menu_topmost);
@@ -140,10 +153,27 @@ public partial class MainWindow : Window
     /// <param name="menuItem"></param>
     private void SetMenuItemHeader(MenuItem menuItem)
     {
-        if (_i18n.ContainsKey(_conf.Lang) && _i18n[_conf.Lang].ContainsKey(menuItem.Name))
+        if (g_i18n.ContainsKey(g_conf.Lang) && g_i18n[g_conf.Lang].ContainsKey(menuItem.Name))
         {
-            menuItem.Header = _i18n[_conf.Lang][menuItem.Name];
+            menuItem.Header = g_i18n[g_conf.Lang][menuItem.Name];
         }
+    }
+
+    private const int PricePad = 5;
+    private void InitFiledName()
+    {
+        g_fieldName = Environment.NewLine + Environment.NewLine
+        + $"{g_i18n[g_conf.Lang]["ui_name"]}"
+        + $" {g_i18n[g_conf.Lang]["ui_price"]}"
+        + $" {g_i18n[g_conf.Lang]["ui_change"]}%"
+        + $" {g_i18n[g_conf.Lang]["ui_cost"]}"
+        + $" {g_i18n[g_conf.Lang]["ui_num"]}"
+        + $" {g_i18n[g_conf.Lang]["ui_day_make"]}"
+        + $" {g_i18n[g_conf.Lang]["ui_all_make"]}"
+        + $" {g_i18n[g_conf.Lang]["ui_yesterday"]}{Symbols.ArrowRight}{g_i18n[g_conf.Lang]["ui_todayopen"]}"
+        + $" {g_i18n[g_conf.Lang]["ui_lowest"]}{Symbols.ArrowUpDown}{g_i18n[g_conf.Lang]["ui_highest"]}"
+        + $" {g_i18n[g_conf.Lang]["ui_limitdown"]}{Symbols.Wave}{g_i18n[g_conf.Lang]["ui_limitup"]}"
+        ;
     }
 
     /// <summary>
@@ -155,44 +185,56 @@ public partial class MainWindow : Window
     private string StockInfoHandle(ref StockConfig sc, StockInfo res)
     {
         sc.Name = res.StockName;
-        var info = $"{sc.DiaplayName} {res.CurrentPrice:f2} {res.PriceChangePercent}%";
-        if (sc.BuyPrice > 0)
+        var info = $"{sc.DiaplayName,-4}";
+        var makeMoney = res.CurrentPrice - sc.BuyPrice;
+        foreach (var kvp in g_conf.FieldControl)
         {
-            var makeMoney = res.CurrentPrice - sc.BuyPrice;
-            if (sc.BuyCount > 0)
+            if (kvp.Value)// 启用字段
             {
-                makeMoney *= sc.BuyCount;
+                var fieldData = kvp.Key switch
+                {
+                    "ui_price" => $" {res.CurrentPrice,PricePad}",
+                    "ui_change" => $" {res.PriceChangePercent,6}%",
+                    "ui_cost" => sc.BuyPrice > 0 ? $" {sc.BuyPrice,6:f2}" : "",
+                    "ui_num" => sc.BuyPrice > 0 ? $" {sc.BuyCount,PricePad}" : "",
+                    "ui_day_make" => sc.BuyPrice > 0 ? $" {res.PriceChange * sc.BuyCount,PricePad:f0}" : "",
+                    "ui_all_make" => sc.BuyPrice > 0 ? $" {makeMoney * sc.BuyCount,PricePad:f0}" : "",
+                    "ui_yesterday_todayopen" => $" {res.YesterdayClose,PricePad}{Symbols.ArrowRight}{res.TodayOpen,-PricePad}",
+                    "ui_lowest_highest" => $" {res.LowestPrice,PricePad}{Symbols.ArrowUpDown}{res.HighestPrice,-PricePad}",
+                    "ui_limitup_limitdown" => res.PriceLimitDown != res.PriceLimitUp ? $" {res.PriceLimitDown,PricePad}{Symbols.Wave}{res.PriceLimitUp,-PricePad}" : "",
+                    _ => ""
+                };
+                info += fieldData;
             }
-            info += $" {makeMoney:f2}";
         }
         return info;
     }
 
     private async void DoWork(object sender, EventArgs e)
     {
-        while (!worker.IsBusy)
+        while (!g_worker.IsBusy)
         {
-            if (!Utils.IsTradingTime())// 非交易时间
+            if (!Utils.IsTradingTime() && !g_isDebug)// 非交易时间
             {
-                UpdateUI(_i18n[_conf.Lang]["ui_nontrading"]);
+                UpdateUI(g_i18n[g_conf.Lang]["ui_nontrading"]);
                 await Delay(30000);
                 continue;
             }
 
-            if (_conf.DataRoll)// 单行数据滚动展示
+            if (g_conf.DataRoll)// 单行数据滚动展示
             {
-                if (codeIndex > _conf.Stocks.Count - 1)
+                if (g_codeIndex > g_conf.Stocks.Count - 1)
                 {
-                    codeIndex = 0;
+                    g_codeIndex = 0;
                     await Delay();
                     continue;
                 }
 
-                var stock = _conf.Stocks.ElementAt(codeIndex);
+                var stock = g_conf.Stocks.ElementAt(g_codeIndex);
                 var res = await Request(stock);
                 if (res == null)
                 {
-                    UpdateUI(_i18n[_conf.Lang]["ui_getdatafialed"], UIStatus.ProgramError);
+                    UpdateUI(g_i18n[g_conf.Lang]["ui_getdatafialed"], UIStatus.ProgramError);
                     await Delay(10000);
                     continue;
                 }
@@ -206,19 +248,19 @@ public partial class MainWindow : Window
                     UpdateUI(text, UIStatus.DownLimit);
                 }
 
-                codeIndex++;
-                if (_conf.Stocks.Count < codeIndex + 1)
+                g_codeIndex++;
+                if (g_conf.Stocks.Count < g_codeIndex + 1)
                 {
-                    codeIndex = 0;
+                    g_codeIndex = 0;
                 }
             }
             else// 多行数据同步展示
             {
-                var stocks = _conf.Stocks;
+                var stocks = g_conf.Stocks;
                 var res = await Request(stocks);
                 if (res == null || res.Count == 0)
                 {
-                    UpdateUI(_i18n[_conf.Lang]["ui_getdatafialed"], UIStatus.ProgramError);
+                    UpdateUI(g_i18n[g_conf.Lang]["ui_getdatafialed"], UIStatus.ProgramError);
                     await Delay(10000);
                     continue;
                 }
@@ -230,17 +272,17 @@ public partial class MainWindow : Window
                         continue;
                     }
                     var text = StockInfoHandle(ref stock, info);
-                    if (codeDatas.ContainsKey(stock.Code))
+                    if (g_codeDatas.ContainsKey(stock.Code))
                     {
-                        codeDatas[stock.Code] = text;
+                        g_codeDatas[stock.Code] = text;
                     }
                     else
                     {
-                        codeDatas.Add(stock.Code, text);
+                        g_codeDatas.Add(stock.Code, text);
                     }
                 }
-                var list = codeDatas.Select(x => x.Value);
-                UpdateUI(string.Join(Environment.NewLine, list));
+                var list = g_codeDatas.Select(x => x.Value);
+                UpdateUI(string.Join(Environment.NewLine, list) + g_fieldName);
             }
 
             await Delay();// 请求间隔最低 2s
@@ -249,7 +291,7 @@ public partial class MainWindow : Window
 
     private async Task Delay(int ms = 2000)
     {
-        await Task.Delay(_conf.Interval < 2 ? ms : _conf.Interval * 1000);
+        await Task.Delay(g_conf.Interval < 2 ? ms : g_conf.Interval * 1000);
     }
 
     public static Brush color_bg;
@@ -292,7 +334,7 @@ public partial class MainWindow : Window
         {
             var request = new RestRequest();
             request.AddQueryParameter("q", sc.Code);
-            var response = await _client.GetAsync(request);
+            var response = await g_client.GetAsync(request);
             if (response.IsSuccessStatusCode)
             {
                 var content = response.Content;
@@ -319,7 +361,7 @@ public partial class MainWindow : Window
             var codes = string.Join(",", scs.Select(x => x.Code));
             var request = new RestRequest();
             request.AddQueryParameter("q", codes);
-            var response = await _client.GetAsync(request);
+            var response = await g_client.GetAsync(request);
             if (response.IsSuccessStatusCode)
             {
                 var contents = response.Content.Split(';');
@@ -366,14 +408,14 @@ public partial class MainWindow : Window
                     Close();
                     break;
                 case "menu_dark":
-                    _conf.DarkMode = !_conf.DarkMode;
-                    menu_dark.IsChecked = _conf.DarkMode;
+                    g_conf.DarkMode = !g_conf.DarkMode;
+                    menu_dark.IsChecked = g_conf.DarkMode;
                     InitColor();
                     break;
                 case "menu_topmost":
-                    _conf.Topmost = !_conf.Topmost;
-                    menu_topmost.IsChecked = _conf.Topmost;
-                    Topmost = _conf.Topmost;
+                    g_conf.Topmost = !g_conf.Topmost;
+                    menu_topmost.IsChecked = g_conf.Topmost;
+                    Topmost = g_conf.Topmost;
                     break;
                 case "menu_conf":
                     var cw = new ConfigWindow
@@ -384,7 +426,7 @@ public partial class MainWindow : Window
                     cw.ShowDialog();
                     if ((bool)cw.DialogResult)
                     {
-                        Utils.SaveConfig(_conf);
+                        Utils.SaveConfig(g_conf);
                     }
                     break;
                 case "menu_conf_file":
@@ -392,13 +434,13 @@ public partial class MainWindow : Window
                     Process.Start(fullPath);
                     break;
                 case "menu_show_in_taskbar":
-                    _conf.ShowInTaskbar = !_conf.ShowInTaskbar;
-                    menu_show_in_taskbar.IsChecked = _conf.ShowInTaskbar;
-                    ShowInTaskbar = _conf.ShowInTaskbar;
+                    g_conf.ShowInTaskbar = !g_conf.ShowInTaskbar;
+                    menu_show_in_taskbar.IsChecked = g_conf.ShowInTaskbar;
+                    ShowInTaskbar = g_conf.ShowInTaskbar;
                     break;
                 case "menu_data_roll":
-                    _conf.DataRoll = !_conf.DataRoll;
-                    menu_data_roll.IsChecked = _conf.DataRoll;
+                    g_conf.DataRoll = !g_conf.DataRoll;
+                    menu_data_roll.IsChecked = g_conf.DataRoll;
                     break;
                 case "menu_ver":
                 default:

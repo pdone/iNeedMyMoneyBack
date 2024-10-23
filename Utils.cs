@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Interop;
@@ -41,6 +40,59 @@ public static class Utils
         double.TryParse(value, out var result);
         return result;
     }
+    public static string iPadRight(this string value, int count, char paddingChar = ' ')
+    {
+        return PadRightByVisualWidth(value, count, paddingChar);
+    }
+    public static string iPadLeft(this string value, int count, char paddingChar = ' ')
+    {
+        return PadRightByVisualWidth(value, count, paddingChar, false);
+    }
+    public static string PadRightByVisualWidth(string input, int totalWidth, char paddingChar, bool isRight = true)
+    {
+        var currentWidth = GetVisualWidth(input);
+        var paddingLength = totalWidth - currentWidth;
+
+        if (paddingLength > 0)
+        {
+            if (isRight)
+            {
+                return input + new string(paddingChar, paddingLength);
+            }
+            else
+            {
+                return new string(paddingChar, paddingLength) + input;
+            }
+        }
+        else
+        {
+            return input;
+        }
+    }
+
+    public static int GetVisualWidth(string input)
+    {
+        int visualWidth = 0;
+        foreach (char c in input)
+        {
+            if (char.IsHighSurrogate(c) || char.IsLowSurrogate(c))
+            {
+                // Surrogate pairs (used for characters outside the Basic Multilingual Plane)
+                visualWidth += 2;
+            }
+            else if (char.IsLetterOrDigit(c) || char.IsPunctuation(c) || char.IsSymbol(c))
+            {
+                // Assume full-width characters (common for CJK)
+                visualWidth += 2;
+            }
+            else
+            {
+                // Assume half-width characters
+                visualWidth += 1;
+            }
+        }
+        return visualWidth;
+    }
     #endregion
 
     #region 多语言
@@ -56,14 +108,34 @@ public static class Utils
             ["menu_conf_file"] = ["Open config file", "打开配置文件"],
             ["menu_show_in_taskbar"] = ["Show in taskbar", "在任务栏显示"],
             ["menu_data_roll"] = ["Data roll", "数据滚动显示"],
+            ["menu_ui"] = ["UI option", "界面选项"],
+            ["menu_dev"] = ["Dev option", "开发者选项"],
             ["btn_close"] = ["Close", "关闭"],
             ["col_code"] = ["Code", "代码"],
-            ["col_name"] = ["Name(Auto)", "名称(自动获取)"],
+            ["col_name"] = ["Name", "名称"],
             ["col_nickname"] = ["NickName", "别名"],
             ["col_buyprice"] = ["BuyPrice", "买价"],
             ["col_buycount"] = ["BuyCount", "数量"],
             ["ui_nontrading"] = ["Non-trading", "非交易时间"],
             ["ui_getdatafialed"] = ["Failed to get data", "获取数据失败"],
+
+            ["ui_name"] = ["Name", "名称"],
+            ["ui_price"] = ["Price", "价格"],
+            ["ui_change"] = ["Change", "涨幅"],
+            ["ui_cost"] = ["Cost", "成本"],
+            ["ui_num"] = ["Num", "持仓"],
+            ["ui_day_make"] = ["DayMake", "日盈"],
+            ["ui_all_make"] = ["AllMake", "总盈"],
+            ["ui_yesterday"] = ["LastClose", "昨收"],
+            ["ui_todayopen"] = ["TodayOpen", "今开"],
+            ["ui_highest"] = ["Highest", "最高"],
+            ["ui_lowest"] = ["Lowest", "最低"],
+            ["ui_limitup"] = ["UpLimit", "涨停"],
+            ["ui_limitdown"] = ["DownLimit", "跌停"],
+
+            ["ui_yesterday_todayopen"] = ["LastClose TodayOpen", "昨收今开"],
+            ["ui_lowest_highest"] = ["Lowest Highest", "最低最高"],
+            ["ui_limitup_limitdown"] = ["UpLimit DownLimit", "涨停跌停"],
         };
 
         var en = langs.Select(x => new KeyValuePair<string, string>(x.Key, x.Value[0]))
@@ -74,7 +146,7 @@ public static class Utils
         var dict = new Dictionary<string, Dictionary<string, string>>
         {
             { "en", en },
-            { "zh_CN", zh_CN }
+            { "cn", zh_CN }
         };
         return dict;
     }
