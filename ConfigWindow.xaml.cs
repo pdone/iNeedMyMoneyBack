@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Windows;
+using System.Windows.Input;
 using System.Windows.Media;
 using CheckBox = System.Windows.Controls.CheckBox;
 
@@ -10,6 +11,10 @@ namespace iNeedMyMoneyBack;
 /// </summary>
 public partial class ConfigWindow : Window
 {
+    public static readonly SolidColorBrush LightGray = new(Color.FromRgb(222, 222, 222));// 浅灰
+    public static readonly SolidColorBrush DarkGray = new(Color.FromRgb(66, 66, 66));// 深灰
+    public static SolidColorBrush ColorChecked;
+
     private readonly Config _conf;
     private readonly Dictionary<string, Dictionary<string, string>> _i18n;
     public ConfigWindow()
@@ -39,11 +44,13 @@ public partial class ConfigWindow : Window
         dataGrid.ColumnHeaderStyle.Setters.Add(new Setter(HorizontalContentAlignmentProperty, HorizontalAlignment.Center));
         dataGrid.ColumnHeaderStyle.Setters.Add(new Setter(BorderBrushProperty, Brushes.Black));
 
+        ColorChecked = new(Color.FromRgb(187, 187, 187));
         if (_conf.DarkMode)
         {
             dataGrid.CellStyle.Setters.Add(new Setter(BorderBrushProperty, DarkGray));
             dataGrid.ColumnHeaderStyle.Setters.Add(new Setter(BorderBrushProperty, DarkGray));
             btn_close.Foreground = LightGray;
+            ColorChecked = DarkGray;
         }
 
         dataGrid.ItemsSource = _conf.Stocks;
@@ -53,10 +60,15 @@ public partial class ConfigWindow : Window
             var cbx = CreateCheckBox(kvp.Key, kvp.Value);
             FieldControl.Children.Add(cbx);
         }
-    }
 
-    private readonly SolidColorBrush LightGray = new(Color.FromRgb(222, 222, 222));// 浅灰
-    private readonly SolidColorBrush DarkGray = new(Color.FromRgb(66, 66, 66));// 深灰
+        Closing += (sender, e) =>
+        {
+            _conf.Width = Width;
+            _conf.Height = Height;
+        };
+        Width = _conf.Width;
+        Height = _conf.Height;
+    }
 
     /// <summary>
     /// 添加复选框
@@ -89,9 +101,18 @@ public partial class ConfigWindow : Window
         }
     }
 
-    private void btn_close_Click(object sender, RoutedEventArgs e)
+    private void Btn_Close_Click(object sender, RoutedEventArgs e)
     {
         DialogResult = true;
         Close();
+    }
+
+    private void Window_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        // 检查按键是否为 Esc
+        if (e.Key == Key.Escape)
+        {
+            Btn_Close_Click(null, null);
+        }
     }
 }

@@ -6,7 +6,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         Title="ConfigWindow"
         Width="270"
-        Height="165"
+        Height="230"
         MinWidth="200"
         MinHeight="165"
         AllowsTransparency="True"
@@ -15,6 +15,7 @@
         OpacityMask="White"
         ResizeMode="CanResizeWithGrip"
         WindowStyle="None"
+        KeyDown="Window_KeyDown"
         mc:Ignorable="d">
     <Window.Resources>
         <Style TargetType="Button">
@@ -29,13 +30,17 @@
                                 CornerRadius="8">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="#666" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
         <Style TargetType="CheckBox">
-            <Setter Property="Background" Value="#66ffffff" />
-            <Setter Property="Margin" Value="2,0" />
+            <Setter Property="Margin" Value="2,2" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="CheckBox">
@@ -51,11 +56,10 @@
                         </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#00ffffff" />
-                                <Setter TargetName="border" Property="BorderBrush" Value="#aaa" />
+                                <Setter TargetName="border" Property="BorderBrush" Value="#666" />
                             </Trigger>
                             <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#555" />
+                                <Setter TargetName="border" Property="Background" Value="{x:Static local:ConfigWindow.ColorChecked}" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -112,7 +116,7 @@
                 Margin="5,0,0,5"
                 HorizontalAlignment="Left"
                 VerticalAlignment="Bottom"
-                Click="btn_close_Click"
+                Click="Btn_Close_Click"
                 Content="Close" />
     </Grid>
 </Window>

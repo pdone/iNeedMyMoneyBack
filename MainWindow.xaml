@@ -12,7 +12,7 @@
         MinHeight="26"
         AllowsTransparency="True"
         Background="Transparent"
-        FontFamily="Cascadia Mono,霞鹜文楷等宽,微软雅黑,Arial"
+        FontFamily="Cascadia Mono,阿里巴巴普惠体 3.0,微软雅黑,Arial"
         OpacityMask="White"
         ResizeMode="CanResizeWithGrip"
         WindowStyle="None"
@@ -31,37 +31,6 @@
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
-        </Style>
-
-        <!--  定义子菜单的背景色样式  -->
-        <Style x:Key="SubMenuBackgroundStyle" TargetType="Border">
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Background" Value="#80000000" />
-            <Setter Property="Opacity" Value="{Binding ElementName=main, Path=Opacity}" />
-        </Style>
-
-        <!--  定义 MenuItem 的 ControlTemplate  -->
-        <ControlTemplate x:Key="CustomMenuItemTemplate" TargetType="{x:Type MenuItem}">
-            <Grid>
-                <ContentPresenter Margin="3,3,3,3"
-                                  ContentSource="Header"
-                                  RecognizesAccessKey="True" />
-                <Popup x:Name="PART_Popup"
-                       AllowsTransparency="True"
-                       Focusable="False"
-                       IsOpen="{TemplateBinding IsSubmenuOpen}"
-                       Placement="Right"
-                       PopupAnimation="Fade">
-                    <Border Style="{StaticResource SubMenuBackgroundStyle}">
-                        <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle" />
-                    </Border>
-                </Popup>
-            </Grid>
-        </ControlTemplate>
-
-        <!--  应用 ControlTemplate 到 MenuItem  -->
-        <Style x:Key="cecece" TargetType="{x:Type MenuItem}">
-            <Setter Property="Template" Value="{StaticResource CustomMenuItemTemplate}" />
         </Style>
     </Window.Resources>
     <Window.ContextMenu>
@@ -85,7 +54,7 @@
                 BorderThickness="1"
                 CornerRadius="0,10,0,10">
             <Label Name="lb"
-                   Padding="10,0"
+                   Padding="10,2"
                    Content="Loading"
                    FontSize="16" />
         </Border>

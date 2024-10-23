@@ -185,7 +185,7 @@ public partial class MainWindow : Window
     private string StockInfoHandle(ref StockConfig sc, StockInfo res)
     {
         sc.Name = res.StockName;
-        var info = $"{sc.DiaplayName,-4}";
+        var info = $"{sc.DiaplayName}";
         var makeMoney = res.CurrentPrice - sc.BuyPrice;
         foreach (var kvp in g_conf.FieldControl)
         {
@@ -246,6 +246,10 @@ public partial class MainWindow : Window
                 else if (res.CurrentPrice <= res.PriceLimitDown)
                 {
                     UpdateUI(text, UIStatus.DownLimit);
+                }
+                else
+                {
+                    UpdateUI(text);
                 }
 
                 g_codeIndex++;
