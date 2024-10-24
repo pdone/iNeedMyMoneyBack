@@ -36,6 +36,7 @@
     <Window.ContextMenu>
         <ContextMenu Name="menu">
             <MenuItem Name="menu_ver" Click="MenuItem_Click" />
+            <MenuItem Name="menu_lang" Click="MenuItem_Click" />
             <Separator />
             <MenuItem Name="menu_conf" Click="MenuItem_Click" />
             <MenuItem Name="menu_conf_file" Click="MenuItem_Click" />

@@ -51,6 +51,15 @@ public class StockConfig
         get; set;
     }
     public string DiaplayName => string.IsNullOrWhiteSpace(NickName) ? Name : NickName;
+
+    public double DayMake
+    {
+        get; set;
+    }
+    public double AllMake
+    {
+        get; set;
+    }
 }
 
 public class Config
@@ -103,7 +112,7 @@ public class Config
     public double ConfigWindowHeight { get; set; } = 165;
     public List<StockConfig> Stocks { get; set; } = [new StockConfig("sh000001", "上证指数")];
 
-    public Dictionary<string, bool> FieldControl
+    public Dictionary<string, bool> FieldControls
     {
         get; set;
     } = new()
@@ -117,5 +126,15 @@ public class Config
         {"ui_yesterday_todayopen",true},
         {"ui_lowest_highest",true},
         {"ui_limitup_limitdown",true},
+    };
+
+    public Dictionary<string, bool> ExtendControls
+    {
+        get; set;
+    } = new()
+    {
+        {"ui_fieldname",true},
+        {"ui_all_stock_day_make",true},
+        {"ui_all_stock_all_make",true},
     };
 }

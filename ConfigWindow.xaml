@@ -12,10 +12,10 @@
         AllowsTransparency="True"
         Background="Transparent"
         FontFamily="阿里巴巴普惠体 3.0,微软雅黑,Arial"
+        KeyDown="Window_KeyDown"
         OpacityMask="White"
         ResizeMode="CanResizeWithGrip"
         WindowStyle="None"
-        KeyDown="Window_KeyDown"
         mc:Ignorable="d">
     <Window.Resources>
         <Style TargetType="Button">
@@ -66,6 +66,10 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        <Style TargetType="WrapPanel">
+            <Setter Property="Orientation" Value="Horizontal" />
+            <Setter Property="Margin" Value="5" />
+        </Style>
     </Window.Resources>
     <Grid x:Name="grid" Background="Transparent">
         <Border Name="border"
@@ -106,9 +110,8 @@
                         <DataGridTextColumn Binding="{Binding BuyCount}" Header="BuyCount" />
                     </DataGrid.Columns>
                 </DataGrid>
-                <WrapPanel x:Name="FieldControl"
-                           Margin="5"
-                           Orientation="Horizontal" />
+                <WrapPanel x:Name="FieldControls" />
+                <WrapPanel x:Name="ExtendControls" />
             </StackPanel>
         </Border>
         <Button x:Name="btn_close"

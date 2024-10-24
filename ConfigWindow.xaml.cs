@@ -17,9 +17,11 @@ public partial class ConfigWindow : Window
 
     private readonly Config _conf;
     private readonly Dictionary<string, Dictionary<string, string>> _i18n;
-    public ConfigWindow()
+    private MainWindow _mainWindow;
+    public ConfigWindow(MainWindow mainWindow)
     {
         InitializeComponent();
+        _mainWindow = mainWindow;
         _conf = MainWindow.g_conf;
         _i18n = MainWindow.g_i18n;
         InitUI();
@@ -64,10 +66,16 @@ public partial class ConfigWindow : Window
             ColorChecked = DarkGray;
         }
 
-        foreach (var kvp in _conf.FieldControl)
+        foreach (var kvp in _conf.FieldControls)
         {
             var cbx = CreateCheckBox(kvp.Key, kvp.Value);
-            FieldControl.Children.Add(cbx);
+            FieldControls.Children.Add(cbx);
+        }
+
+        foreach (var kvp in _conf.ExtendControls)
+        {
+            var cbx = CreateCheckBox(kvp.Key, kvp.Value);
+            ExtendControls.Children.Add(cbx);
         }
     }
 
@@ -95,10 +103,15 @@ public partial class ConfigWindow : Window
     {
         if (sender is CheckBox checkBox)
         {
-            if (_conf.FieldControl.ContainsKey(checkBox.Name))
+            if (_conf.FieldControls.ContainsKey(checkBox.Name))
             {
-                _conf.FieldControl[checkBox.Name] = (bool)checkBox.IsChecked;
+                _conf.FieldControls[checkBox.Name] = (bool)checkBox.IsChecked;
             }
+            else if (_conf.ExtendControls.ContainsKey(checkBox.Name))
+            {
+                _conf.ExtendControls[checkBox.Name] = (bool)checkBox.IsChecked;
+            }
+            _mainWindow.DoWork(null, null);
         }
     }
 

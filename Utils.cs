@@ -109,6 +109,7 @@ public static class Utils
             ["menu_data_roll"] = ["Data roll", "数据滚动显示"],
             ["menu_ui"] = ["UI option", "界面选项"],
             ["menu_dev"] = ["Dev option", "开发者选项"],
+            ["menu_lang"] = ["中文界面", "English UI"],
             ["btn_close"] = ["Close", "关闭"],
             ["col_code"] = ["Code", "代码"],
             ["col_name"] = ["Name", "名称"],
@@ -131,6 +132,12 @@ public static class Utils
             ["ui_lowest"] = ["Lowest", "最低"],
             ["ui_limitup"] = ["UpLimit", "涨停"],
             ["ui_limitdown"] = ["DownLimit", "跌停"],
+
+            ["newline"] = [Environment.NewLine, Environment.NewLine],
+            ["space"] = [" ", " "],
+            ["ui_fieldname"] = ["FieldName", "字段名称"],
+            ["ui_all_stock_day_make"] = ["AllStockDayMake", "总持日盈"],
+            ["ui_all_stock_all_make"] = ["AllStockAllMake", "总持总盈"],
 
             ["ui_yesterday_todayopen"] = ["LastClose TodayOpen", "昨收今开"],
             ["ui_lowest_highest"] = ["Lowest Highest", "最低最高"],

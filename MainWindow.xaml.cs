@@ -23,7 +23,6 @@ public partial class MainWindow : Window
     public static Dictionary<string, Dictionary<string, string>> g_i18n;
     private static int g_codeIndex = 0;
     private static readonly Dictionary<string, string> g_codeDatas = [];
-    private static string g_fieldName;// 字段名称
     private readonly BackgroundWorker g_worker = new()
     {
         WorkerSupportsCancellation = true,
@@ -105,7 +104,6 @@ public partial class MainWindow : Window
         menu_data_roll.IsChecked = g_conf.DataRoll;
         InitColor();
         InitLang();
-        InitFiledName();
     }
     /// <summary>
     /// 初始化配色
@@ -144,6 +142,7 @@ public partial class MainWindow : Window
         SetMenuItemHeader(menu_conf_file);
         SetMenuItemHeader(menu_show_in_taskbar);
         SetMenuItemHeader(menu_data_roll);
+        SetMenuItemHeader(menu_lang);
     }
 
     /// <summary>
@@ -158,23 +157,28 @@ public partial class MainWindow : Window
         }
     }
 
-    private const int PricePad = 5;
-    private void InitFiledName()
+    private string GetFieldName()
     {
-        g_fieldName = Environment.NewLine + Environment.NewLine
-        + $"{g_i18n[g_conf.Lang]["ui_name"]}"
-        + $" {g_i18n[g_conf.Lang]["ui_price"]}"
-        + $" {g_i18n[g_conf.Lang]["ui_change"]}%"
-        + $" {g_i18n[g_conf.Lang]["ui_cost"]}"
-        + $" {g_i18n[g_conf.Lang]["ui_num"]}"
-        + $" {g_i18n[g_conf.Lang]["ui_day_make"]}"
-        + $" {g_i18n[g_conf.Lang]["ui_all_make"]}"
-        + $" {g_i18n[g_conf.Lang]["ui_yesterday"]}{Symbols.ArrowRight}{g_i18n[g_conf.Lang]["ui_todayopen"]}"
-        + $" {g_i18n[g_conf.Lang]["ui_lowest"]}{Symbols.ArrowUpDown}{g_i18n[g_conf.Lang]["ui_highest"]}"
-        + $" {g_i18n[g_conf.Lang]["ui_limitdown"]}{Symbols.Wave}{g_i18n[g_conf.Lang]["ui_limitup"]}"
-        ;
+        var fieldName = $"{Environment.NewLine}{g_i18n[g_conf.Lang]["ui_name"]}";
+        foreach (var kvp in g_conf.FieldControls)
+        {
+            if (!kvp.Value)// 启用字段
+            {
+                continue;
+            }
+            var fieldData = kvp.Key switch
+            {
+                "ui_yesterday_todayopen" => $" {g_i18n[g_conf.Lang]["ui_yesterday"]}{Symbols.ArrowRight}{g_i18n[g_conf.Lang]["ui_todayopen"]}",
+                "ui_lowest_highest" => $" {g_i18n[g_conf.Lang]["ui_lowest"]}{Symbols.ArrowUpDown}{g_i18n[g_conf.Lang]["ui_highest"]}",
+                "ui_limitup_limitdown" => $" {g_i18n[g_conf.Lang]["ui_limitdown"]}{Symbols.Wave}{g_i18n[g_conf.Lang]["ui_limitup"]}",
+                _ => $" {g_i18n[g_conf.Lang][kvp.Key]}"
+            };
+            fieldName += fieldData;
+        }
+        return fieldName;
     }
 
+    private const int PricePad = 5;
     /// <summary>
     /// 整理数据
     /// </summary>
@@ -186,30 +190,33 @@ public partial class MainWindow : Window
         sc.Name = res.StockName;
         var info = $"{sc.DiaplayName}";
         var makeMoney = res.CurrentPrice - sc.BuyPrice;
-        foreach (var kvp in g_conf.FieldControl)
+        sc.DayMake = res.PriceChange * sc.BuyCount;
+        sc.AllMake = makeMoney * sc.BuyCount;
+        foreach (var kvp in g_conf.FieldControls)
         {
-            if (kvp.Value)// 启用字段
+            if (!kvp.Value)// 启用字段
             {
-                var fieldData = kvp.Key switch
-                {
-                    "ui_price" => $" {res.CurrentPrice,PricePad}",
-                    "ui_change" => $" {res.PriceChangePercent,6}%",
-                    "ui_cost" => sc.BuyPrice > 0 ? $" {sc.BuyPrice,6:f2}" : "",
-                    "ui_num" => sc.BuyPrice > 0 ? $" {sc.BuyCount,PricePad}" : "",
-                    "ui_day_make" => sc.BuyPrice > 0 ? $" {res.PriceChange * sc.BuyCount,PricePad:f0}" : "",
-                    "ui_all_make" => sc.BuyPrice > 0 ? $" {makeMoney * sc.BuyCount,PricePad:f0}" : "",
-                    "ui_yesterday_todayopen" => $" {res.YesterdayClose,PricePad}{Symbols.ArrowRight}{res.TodayOpen,-PricePad}",
-                    "ui_lowest_highest" => $" {res.LowestPrice,PricePad}{Symbols.ArrowUpDown}{res.HighestPrice,-PricePad}",
-                    "ui_limitup_limitdown" => res.PriceLimitDown != res.PriceLimitUp ? $" {res.PriceLimitDown,PricePad}{Symbols.Wave}{res.PriceLimitUp,-PricePad}" : "",
-                    _ => ""
-                };
-                info += fieldData;
+                continue;
             }
+            var fieldData = kvp.Key switch
+            {
+                "ui_price" => $" {res.CurrentPrice,PricePad}",
+                "ui_change" => $" {res.PriceChangePercent,6}%",
+                "ui_cost" => $" {sc.BuyPrice,PricePad:f2}",
+                "ui_num" => $" {sc.BuyCount,PricePad}",
+                "ui_day_make" => $" {sc.DayMake,PricePad:f0}",
+                "ui_all_make" => $" {sc.AllMake,PricePad:f0}",
+                "ui_yesterday_todayopen" => $" {res.YesterdayClose,PricePad}{Symbols.ArrowRight}{res.TodayOpen,-PricePad}",
+                "ui_lowest_highest" => $" {res.LowestPrice,PricePad}{Symbols.ArrowUpDown}{res.HighestPrice,-PricePad}",
+                "ui_limitup_limitdown" => res.PriceLimitDown != res.PriceLimitUp ? $" {res.PriceLimitDown,PricePad}{Symbols.Wave}{res.PriceLimitUp,-PricePad}" : "",
+                _ => ""
+            };
+            info += fieldData;
         }
         return info;
     }
 
-    private async void DoWork(object sender, EventArgs e)
+    public async void DoWork(object sender, EventArgs e)
     {
         while (!g_worker.IsBusy)
         {
@@ -267,6 +274,8 @@ public partial class MainWindow : Window
                     await Delay(10000);
                     continue;
                 }
+                var daymake = 0.0;
+                var allmake = 0.0;
                 foreach (var info in res)
                 {
                     var stock = stocks.FirstOrDefault(x => x.Code.Trim().Remove(0, 2) == info.StockCode);
@@ -283,9 +292,32 @@ public partial class MainWindow : Window
                     {
                         g_codeDatas.Add(stock.Code, text);
                     }
+                    daymake += stock.DayMake;
+                    allmake += stock.AllMake;
                 }
                 var list = g_codeDatas.Select(x => x.Value);
-                UpdateUI(string.Join(Environment.NewLine, list) + g_fieldName);
+                var content = string.Join(Environment.NewLine, list);
+                foreach (var kvp in g_conf.ExtendControls)
+                {
+                    if (!kvp.Value)
+                    {
+                        continue;
+                    }
+                    if (!g_i18n[g_conf.Lang].TryGetValue(kvp.Key, out var field))
+                    {
+                        continue;
+                    }
+                    var temp = kvp.Key switch
+                    {
+                        "ui_fieldname" => GetFieldName(),
+                        "ui_all_stock_day_make" => $"{Environment.NewLine}{field} {daymake,-8:f2}",
+                        "ui_all_stock_all_make" => $"{Environment.NewLine}{field} {allmake,-8:f2}",
+                        _ => field
+                    };
+                    content += temp;
+                }
+
+                UpdateUI(content);
             }
 
             await Delay();// 请求间隔最低 2s
@@ -421,10 +453,12 @@ public partial class MainWindow : Window
                     Topmost = g_conf.Topmost;
                     break;
                 case "menu_conf":
-                    var cw = new ConfigWindow
+                    var cw = new ConfigWindow(this)
                     {
                         Owner = this,
-                        WindowStartupLocation = WindowStartupLocation.CenterOwner
+                        WindowStartupLocation = WindowStartupLocation.Manual,
+                        Left = Left + Width,
+                        Top = Top
                     };
                     cw.ShowDialog();
                     if ((bool)cw.DialogResult)
@@ -444,6 +478,11 @@ public partial class MainWindow : Window
                 case "menu_data_roll":
                     g_conf.DataRoll = !g_conf.DataRoll;
                     menu_data_roll.IsChecked = g_conf.DataRoll;
+                    break;
+                case "menu_lang":
+                    g_conf.Lang = g_conf.Lang == "cn" ? "en" : "cn";
+                    InitLang();
+                    DoWork(null, null);
                     break;
                 case "menu_ver":
                 default:
