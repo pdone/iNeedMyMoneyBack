@@ -17,7 +17,7 @@ public partial class ConfigWindow : Window
 
     private readonly Config _conf;
     private readonly Dictionary<string, Dictionary<string, string>> _i18n;
-    private MainWindow _mainWindow;
+    private readonly MainWindow _mainWindow;
     public ConfigWindow(MainWindow mainWindow)
     {
         InitializeComponent();
@@ -117,8 +117,8 @@ public partial class ConfigWindow : Window
 
     private void Btn_Close_Click(object sender, RoutedEventArgs e)
     {
-        DialogResult = true;
-        Close();
+        Hide();
+        Utils.SaveConfig(_conf);
     }
 
     private void Window_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)

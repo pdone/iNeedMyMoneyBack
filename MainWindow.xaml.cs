@@ -27,6 +27,7 @@ public partial class MainWindow : Window
     {
         WorkerSupportsCancellation = true,
     };
+    private ConfigWindow g_configWindow;
 
     public struct Symbols
     {
@@ -83,6 +84,30 @@ public partial class MainWindow : Window
         };
         DoWork(null, null);
         g_worker.DoWork += DoWork;
+
+        DependencyPropertyDescriptor
+            .FromProperty(TopProperty, typeof(Window))
+            .AddValueChanged(this, ConfigWindowAdsorption);
+        DependencyPropertyDescriptor
+            .FromProperty(LeftProperty, typeof(Window))
+            .AddValueChanged(this, ConfigWindowAdsorption);
+        DependencyPropertyDescriptor
+            .FromProperty(WidthProperty, typeof(Window))
+            .AddValueChanged(this, ConfigWindowAdsorption);
+    }
+
+    /// <summary>
+    /// 配置界面吸附主界面
+    /// </summary>
+    /// <param name="o"></param>
+    /// <param name="eventArgs"></param>
+    private void ConfigWindowAdsorption(object o, EventArgs eventArgs)
+    {
+        if (g_configWindow != null)
+        {
+            g_configWindow.Left = Left + Width;
+            g_configWindow.Top = Top;
+        }
     }
 
     /// <summary>
@@ -453,18 +478,14 @@ public partial class MainWindow : Window
                     Topmost = g_conf.Topmost;
                     break;
                 case "menu_conf":
-                    var cw = new ConfigWindow(this)
+                    g_configWindow ??= new ConfigWindow(this)
                     {
                         Owner = this,
                         WindowStartupLocation = WindowStartupLocation.Manual,
                         Left = Left + Width,
                         Top = Top
                     };
-                    cw.ShowDialog();
-                    if ((bool)cw.DialogResult)
-                    {
-                        Utils.SaveConfig(g_conf);
-                    }
+                    g_configWindow.Show();
                     break;
                 case "menu_conf_file":
                     var fullPath = Path.Combine(Utils.UserDataPath, "config.json");
