@@ -48,7 +48,7 @@
             <MenuItem Name="menu_exit" Click="MenuItem_Click" />
         </ContextMenu>
     </Window.ContextMenu>
-    <Grid x:Name="grid" Background="Transparent">
+    <Grid Background="Transparent">
         <Border Name="border"
                 Background="#ddd"
                 BorderBrush="#000"

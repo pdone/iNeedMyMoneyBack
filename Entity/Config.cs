@@ -89,9 +89,9 @@ public class Config
     /// </summary>
     public int Interval { get; set; } = 5;
     /// <summary>
-    /// 语言 当前仅支持：zh_CN 和 en
+    /// 语言 当前仅支持：cn 和 en
     /// </summary>
-    public string Lang { get; set; } = "zh_CN";
+    public string Lang { get; set; } = "cn";
     /// <summary>
     /// 在任务栏显示
     /// </summary>

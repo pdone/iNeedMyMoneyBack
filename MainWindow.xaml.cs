@@ -457,6 +457,25 @@ public partial class MainWindow : Window
         return null;
     }
 
+    private void MakeConfigWindow()
+    {
+        g_configWindow ??= new ConfigWindow(this)
+        {
+            Owner = this,
+            WindowStartupLocation = WindowStartupLocation.Manual,
+            Left = Left + Width,
+            Top = Top
+        };
+        if (g_configWindow.Visibility == Visibility.Visible)
+        {
+            g_configWindow.Hide();
+        }
+        else
+        {
+            g_configWindow.Show();
+        }
+    }
+
     private void MenuItem_Click(object sender, RoutedEventArgs e)
     {
         var item = (MenuItem)sender;
@@ -471,6 +490,7 @@ public partial class MainWindow : Window
                     g_conf.DarkMode = !g_conf.DarkMode;
                     menu_dark.IsChecked = g_conf.DarkMode;
                     InitColor();
+                    g_configWindow?.InitColor();
                     break;
                 case "menu_topmost":
                     g_conf.Topmost = !g_conf.Topmost;
@@ -478,14 +498,7 @@ public partial class MainWindow : Window
                     Topmost = g_conf.Topmost;
                     break;
                 case "menu_conf":
-                    g_configWindow ??= new ConfigWindow(this)
-                    {
-                        Owner = this,
-                        WindowStartupLocation = WindowStartupLocation.Manual,
-                        Left = Left + Width,
-                        Top = Top
-                    };
-                    g_configWindow.Show();
+                    MakeConfigWindow();
                     break;
                 case "menu_conf_file":
                     var fullPath = Path.Combine(Utils.UserDataPath, "config.json");
@@ -504,6 +517,7 @@ public partial class MainWindow : Window
                     g_conf.Lang = g_conf.Lang == "cn" ? "en" : "cn";
                     InitLang();
                     DoWork(null, null);
+                    g_configWindow?.InitLang();
                     break;
                 case "menu_ver":
                 default:

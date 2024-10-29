@@ -18,8 +18,13 @@
         WindowStyle="None"
         mc:Ignorable="d">
     <Window.Resources>
+        <SolidColorBrush x:Key="TextColor" />
+        <SolidColorBrush x:Key="CheckedColor" />
+        <SolidColorBrush x:Key="GridBackground" />
+        <SolidColorBrush x:Key="GridBorderColor" />
         <Style TargetType="Button">
             <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource TextColor}" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
@@ -41,6 +46,7 @@
         </Style>
         <Style TargetType="CheckBox">
             <Setter Property="Margin" Value="2,2" />
+            <Setter Property="Foreground" Value="{DynamicResource TextColor}" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="CheckBox">
@@ -59,7 +65,7 @@
                                 <Setter TargetName="border" Property="BorderBrush" Value="#666" />
                             </Trigger>
                             <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="{x:Static local:ConfigWindow.ColorChecked}" />
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource CheckedColor}" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -85,20 +91,27 @@
                           ScrollViewer.VerticalScrollBarVisibility="Hidden">
                     <DataGrid.Style>
                         <Style TargetType="DataGrid">
-                            <Setter Property="BorderBrush" Value="Transparent" />
+                            <Setter Property="BorderThickness" Value="0" />
                         </Style>
                     </DataGrid.Style>
                     <DataGrid.ColumnHeaderStyle>
                         <Style TargetType="DataGridColumnHeader">
                             <Setter Property="BorderThickness" Value="0,0,0,1" />
                             <Setter Property="HorizontalContentAlignment" Value="Center" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextColor}" />
+                            <Setter Property="Background" Value="Transparent" />
+                            <Setter Property="BorderBrush" Value="#000"></Setter>
                         </Style>
-                    </DataGrid.ColumnHeaderStyle>
+                    </DataGrid.ColumnHeaderStyle>      
                     <DataGrid.CellStyle>
-                        <Style />
+                        <Style TargetType="DataGridCell">
+                        </Style>
                     </DataGrid.CellStyle>
                     <DataGrid.RowStyle>
-                        <Style />
+                        <Style TargetType="DataGridRow">
+                            <Setter Property="Background" Value="Transparent" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextColor}" />
+                        </Style>
                     </DataGrid.RowStyle>
                     <DataGrid.Columns>
                         <DataGridTextColumn Binding="{Binding Code}" Header="Code" />

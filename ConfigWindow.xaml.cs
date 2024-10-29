@@ -13,7 +13,6 @@ public partial class ConfigWindow : Window
 {
     public static readonly SolidColorBrush LightGray = new(Color.FromRgb(222, 222, 222));// 浅灰
     public static readonly SolidColorBrush DarkGray = new(Color.FromRgb(66, 66, 66));// 深灰
-    public static SolidColorBrush ColorChecked;
 
     private readonly Config _conf;
     private readonly Dictionary<string, Dictionary<string, string>> _i18n;
@@ -29,6 +28,7 @@ public partial class ConfigWindow : Window
 
     private void InitUI()
     {
+        // 窗体属性
         Width = _conf.ConfigWindowWidth;
         Height = _conf.ConfigWindowHeight;
         Opacity = _conf.Opacity;
@@ -38,44 +38,58 @@ public partial class ConfigWindow : Window
             _conf.ConfigWindowHeight = Height;
         };
         MouseDown += (sender, e) => Utils.DragWindow(this);
+        // 界面数据
+        dataGrid.ItemsSource = _conf.Stocks;
+        foreach (var kvp in _conf.FieldControls)
+        {
+            var cbx = CreateCheckBox(kvp.Key, kvp.Value);
+            FieldControls.Children.Add(cbx);
+        }
+        foreach (var kvp in _conf.ExtendControls)
+        {
+            var cbx = CreateCheckBox(kvp.Key, kvp.Value);
+            ExtendControls.Children.Add(cbx);
+        }
+        // 初始化语言
+        InitLang();
+        // 初始化颜色
+        InitColor();
+    }
 
+    public void InitColor()
+    {
+        dataGrid.Background = MainWindow.color_bg;
+        border.Background = MainWindow.color_bg;
+        Resources["CheckedColor"] = new SolidColorBrush(Color.FromRgb(187, 187, 187));
+        Resources["TextColor"] = SystemColors.ControlTextBrush;
+        if (_conf.DarkMode)
+        {
+            Resources["CheckedColor"] = DarkGray;
+            Resources["TextColor"] = LightGray;
+        }
+    }
+
+    public void InitLang()
+    {
         btn_close.Content = _i18n[_conf.Lang][btn_close.Name];
         dataGrid.Columns[0].Header = _i18n[_conf.Lang]["col_code"];
         dataGrid.Columns[1].Header = _i18n[_conf.Lang]["col_name"];
         dataGrid.Columns[2].Header = _i18n[_conf.Lang]["col_nickname"];
         dataGrid.Columns[3].Header = _i18n[_conf.Lang]["col_buyprice"];
         dataGrid.Columns[4].Header = _i18n[_conf.Lang]["col_buycount"];
-
-        dataGrid.Foreground = MainWindow.color_fg;
-        dataGrid.Background = MainWindow.color_bg;
-        border.Background = MainWindow.color_bg;
-        dataGrid.RowStyle.Setters.Add(new Setter(BackgroundProperty, MainWindow.color_bg));
-        dataGrid.RowStyle.Setters.Add(new Setter(ForegroundProperty, MainWindow.color_fg));
-
-        dataGrid.ColumnHeaderStyle.Setters.Add(new Setter(BackgroundProperty, MainWindow.color_bg));
-        dataGrid.ColumnHeaderStyle.Setters.Add(new Setter(BorderBrushProperty, Brushes.Black));
-
-        dataGrid.ItemsSource = _conf.Stocks;
-
-        ColorChecked = new(Color.FromRgb(187, 187, 187));
-        if (_conf.DarkMode)
+        foreach (var it in FieldControls.Children)
         {
-            dataGrid.CellStyle.Setters.Add(new Setter(BorderBrushProperty, DarkGray));
-            dataGrid.ColumnHeaderStyle.Setters.Add(new Setter(BorderBrushProperty, DarkGray));
-            btn_close.Foreground = LightGray;
-            ColorChecked = DarkGray;
+            if (it is CheckBox cbx)
+            {
+                cbx.Content = _i18n[_conf.Lang][cbx.Name];
+            }
         }
-
-        foreach (var kvp in _conf.FieldControls)
+        foreach (var it in ExtendControls.Children)
         {
-            var cbx = CreateCheckBox(kvp.Key, kvp.Value);
-            FieldControls.Children.Add(cbx);
-        }
-
-        foreach (var kvp in _conf.ExtendControls)
-        {
-            var cbx = CreateCheckBox(kvp.Key, kvp.Value);
-            ExtendControls.Children.Add(cbx);
+            if (it is CheckBox cbx)
+            {
+                cbx.Content = _i18n[_conf.Lang][cbx.Name];
+            }
         }
     }
 
@@ -87,13 +101,8 @@ public partial class ConfigWindow : Window
         CheckBox checkBox = new()
         {
             Name = name,
-            Content = _i18n[_conf.Lang][name],
             IsChecked = isChecked
         };
-        if (_conf.DarkMode)
-        {
-            checkBox.Foreground = LightGray;
-        }
         checkBox.Checked += CheckBox_Checked;
         checkBox.Unchecked += CheckBox_Checked;
         return checkBox;
