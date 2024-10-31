@@ -82,7 +82,7 @@ public partial class MainWindow : Window
             g_conf.Height = Height;
             Utils.SaveConfig(g_conf);
         };
-        DoWork(null, null);
+        DoWork();
         g_worker.DoWork += DoWork;
 
         DependencyPropertyDescriptor
@@ -241,7 +241,7 @@ public partial class MainWindow : Window
         return info;
     }
 
-    public async void DoWork(object sender, EventArgs e)
+    public async void DoWork(object sender = null, EventArgs e = null)
     {
         while (!g_worker.IsBusy)
         {
@@ -516,12 +516,17 @@ public partial class MainWindow : Window
                 case "menu_lang":
                     g_conf.Lang = g_conf.Lang == "cn" ? "en" : "cn";
                     InitLang();
-                    DoWork(null, null);
+                    DoWork();
                     g_configWindow?.InitLang();
                     break;
                 case "menu_ver":
                 default:
-                    MessageBox.Show("nothing happened~");
+                    var res = MessageBox.Show(this, $"{(g_conf.Debug ? "Disable" : "Enable")} debug mode?", "Tip", MessageBoxButton.YesNo);
+                    if (res == MessageBoxResult.Yes)
+                    {
+                        g_conf.Debug = !g_conf.Debug;
+                        DoWork();
+                    }
                     break;
             }
         }

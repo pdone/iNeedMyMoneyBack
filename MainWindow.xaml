@@ -12,7 +12,7 @@
         MinHeight="26"
         AllowsTransparency="True"
         Background="Transparent"
-        FontFamily="Cascadia Mono,阿里巴巴普惠体 3.0,微软雅黑,Arial"
+        FontFamily="{StaticResource FirstFont}"
         OpacityMask="White"
         ResizeMode="CanResizeWithGrip"
         WindowStyle="None"
@@ -34,7 +34,7 @@
         </Style>
     </Window.Resources>
     <Window.ContextMenu>
-        <ContextMenu Name="menu">
+        <ContextMenu Name="menu" FontFamily="{StaticResource SecondFont}">
             <MenuItem Name="menu_ver" Click="MenuItem_Click" />
             <MenuItem Name="menu_lang" Click="MenuItem_Click" />
             <Separator />

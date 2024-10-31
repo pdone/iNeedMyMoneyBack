@@ -11,7 +11,7 @@
         MinHeight="165"
         AllowsTransparency="True"
         Background="Transparent"
-        FontFamily="阿里巴巴普惠体 3.0,微软雅黑,Arial"
+        FontFamily="{StaticResource SecondFont}"
         KeyDown="Window_KeyDown"
         OpacityMask="White"
         ResizeMode="CanResizeWithGrip"
@@ -100,12 +100,11 @@
                             <Setter Property="HorizontalContentAlignment" Value="Center" />
                             <Setter Property="Foreground" Value="{DynamicResource TextColor}" />
                             <Setter Property="Background" Value="Transparent" />
-                            <Setter Property="BorderBrush" Value="#000"></Setter>
+                            <Setter Property="BorderBrush" Value="#000" />
                         </Style>
-                    </DataGrid.ColumnHeaderStyle>      
+                    </DataGrid.ColumnHeaderStyle>
                     <DataGrid.CellStyle>
-                        <Style TargetType="DataGridCell">
-                        </Style>
+                        <Style TargetType="DataGridCell" />
                     </DataGrid.CellStyle>
                     <DataGrid.RowStyle>
                         <Style TargetType="DataGridRow">

@@ -5,6 +5,8 @@
              StartupUri="MainWindow.xaml">
     <Application.Resources>
         <ResourceDictionary>
+            <FontFamily x:Key="FirstFont">Cascadia Mono,Consolas,Microsoft Yahei UI,Arial</FontFamily>
+            <FontFamily x:Key="SecondFont">Microsoft Yahei UI,Arial</FontFamily>
         </ResourceDictionary>
     </Application.Resources>
 </Application>
