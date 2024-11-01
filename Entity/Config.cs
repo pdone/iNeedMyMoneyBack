@@ -127,14 +127,23 @@ public class Config
         {"ui_lowest_highest",true},
         {"ui_limitup_limitdown",true},
     };
-
-    public Dictionary<string, bool> ExtendControls
+    public List<ExtendControlObj> ExtendControls
     {
         get; set;
-    } = new()
-    {
-        {"ui_fieldname",true},
-        {"ui_all_stock_day_make",true},
-        {"ui_all_stock_all_make",true},
-    };
+    } =
+    [
+        new ExtendControlObj("ui_fieldname"),
+        new ExtendControlObj("ui_all_stock_day_make"),
+        new ExtendControlObj("ui_all_stock_all_make"),
+    ];
+}
+
+public class ExtendControlObj(string key)
+{
+    public static string NewlineSuffix => "_newline";
+    public string GetNewLineKey() => Key + NewlineSuffix;
+
+    public string Key { get; set; } = key;
+    public bool Visable { get; set; } = true;
+    public bool NewLine { get; set; } = true;
 }

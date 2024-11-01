@@ -8,7 +8,7 @@
         Width="270"
         Height="230"
         MinWidth="270"
-        MinHeight="165"
+        MinHeight="155"
         AllowsTransparency="True"
         Background="Transparent"
         FontFamily="{StaticResource SecondFont}"

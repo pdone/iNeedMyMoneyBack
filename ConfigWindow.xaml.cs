@@ -32,12 +32,12 @@ public partial class ConfigWindow : Window
         Width = _conf.ConfigWindowWidth;
         Height = _conf.ConfigWindowHeight;
         Opacity = _conf.Opacity;
-        Closing += (sender, e) =>
+        SizeChanged += (_, __) =>
         {
             _conf.ConfigWindowWidth = Width;
             _conf.ConfigWindowHeight = Height;
         };
-        MouseDown += (sender, e) => Utils.DragWindow(this);
+        MouseDown += (_, __) => Utils.DragWindow(this);
         // 界面数据
         dataGrid.ItemsSource = _conf.Stocks;
         foreach (var kvp in _conf.FieldControls)
@@ -45,9 +45,11 @@ public partial class ConfigWindow : Window
             var cbx = CreateCheckBox(kvp.Key, kvp.Value);
             FieldControls.Children.Add(cbx);
         }
-        foreach (var kvp in _conf.ExtendControls)
+        foreach (var item in _conf.ExtendControls)
         {
-            var cbx = CreateCheckBox(kvp.Key, kvp.Value);
+            var cbxNewline = CreateCheckBox(item.GetNewLineKey(), item.NewLine);
+            ExtendControls.Children.Add(cbxNewline);
+            var cbx = CreateCheckBox(item.Key, item.Visable);
             ExtendControls.Children.Add(cbx);
         }
         // 初始化语言
@@ -88,7 +90,14 @@ public partial class ConfigWindow : Window
         {
             if (it is CheckBox cbx)
             {
-                cbx.Content = _i18n[_conf.Lang][cbx.Name];
+                if (cbx.Name.EndsWith(ExtendControlObj.NewlineSuffix))
+                {
+                    cbx.Content = _i18n[_conf.Lang][ExtendControlObj.NewlineSuffix];
+                }
+                else
+                {
+                    cbx.Content = _i18n[_conf.Lang][cbx.Name];
+                }
             }
         }
     }
@@ -116,9 +125,13 @@ public partial class ConfigWindow : Window
             {
                 _conf.FieldControls[checkBox.Name] = (bool)checkBox.IsChecked;
             }
-            else if (_conf.ExtendControls.ContainsKey(checkBox.Name))
+            else if (_conf.ExtendControls.Find(x => x.Key == checkBox.Name) is ExtendControlObj ec)
             {
-                _conf.ExtendControls[checkBox.Name] = (bool)checkBox.IsChecked;
+                ec.Visable = (bool)checkBox.IsChecked;
+            }
+            else if (_conf.ExtendControls.Find(x => x.GetNewLineKey() == checkBox.Name) is ExtendControlObj ec2)
+            {
+                ec2.NewLine = (bool)checkBox.IsChecked;
             }
             _mainWindow.DoWork(null, null);
         }
@@ -126,8 +139,7 @@ public partial class ConfigWindow : Window
 
     private void Btn_Close_Click(object sender, RoutedEventArgs e)
     {
-        Hide();
-        Utils.SaveConfig(_conf);
+        Visibility = Visibility.Hidden;
     }
 
     private void Window_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)

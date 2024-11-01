@@ -8,6 +8,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using RestSharp;
 
@@ -74,12 +75,32 @@ public partial class MainWindow : Window
         }
 
         MouseDown += (sender, e) => Utils.DragWindow(this);
+        MouseWheel += (_, e) =>
+        {
+            if (Keyboard.Modifiers == ModifierKeys.Control)
+            {
+                if (e.Delta > 0)
+                {
+                    Opacity = Math.Min(Opacity + 0.1, 1.0);
+                }
+                else
+                {
+                    Opacity = Math.Max(Opacity - 0.1, 0.1);
+                }
+                menu.Opacity = Opacity;
+                if (g_configWindow != null)
+                {
+                    g_configWindow.Opacity = Opacity;
+                }
+            }
+        };
         Closing += (sender, e) =>
         {
             g_conf.Left = Left;
             g_conf.Top = Top;
             g_conf.Width = Width;
             g_conf.Height = Height;
+            g_conf.Opacity = Opacity;
             Utils.SaveConfig(g_conf);
         };
         DoWork();
@@ -182,9 +203,9 @@ public partial class MainWindow : Window
         }
     }
 
-    private string GetFieldName()
+    private string GetFieldName(string newline)
     {
-        var fieldName = $"{Environment.NewLine}{g_i18n[g_conf.Lang]["ui_name"]}";
+        var fieldName = $"{newline}{g_i18n[g_conf.Lang]["ui_name"]}";
         foreach (var kvp in g_conf.FieldControls)
         {
             if (!kvp.Value)// 启用字段
@@ -225,8 +246,8 @@ public partial class MainWindow : Window
             }
             var fieldData = kvp.Key switch
             {
-                "ui_price" => $" {res.CurrentPrice,PricePad}",
-                "ui_change" => $" {res.PriceChangePercent,6}%",
+                "ui_price" => $" {res.CurrentPrice,PricePad:f2}",
+                "ui_change" => $" {res.PriceChangePercent,PricePad:f2}%",
                 "ui_cost" => $" {sc.BuyPrice,PricePad:f2}",
                 "ui_num" => $" {sc.BuyCount,PricePad}",
                 "ui_day_make" => $" {sc.DayMake,PricePad:f0}",
@@ -322,21 +343,26 @@ public partial class MainWindow : Window
                 }
                 var list = g_codeDatas.Select(x => x.Value);
                 var content = string.Join(Environment.NewLine, list);
-                foreach (var kvp in g_conf.ExtendControls)
+                foreach (var item in g_conf.ExtendControls)
                 {
-                    if (!kvp.Value)
+                    if (!item.Visable)
+                    {
+                        if (item.NewLine)
+                        {
+                            content += Environment.NewLine;
+                        }
+                        continue;
+                    }
+                    if (!g_i18n[g_conf.Lang].TryGetValue(item.Key, out var field))
                     {
                         continue;
                     }
-                    if (!g_i18n[g_conf.Lang].TryGetValue(kvp.Key, out var field))
+                    var newline = item.NewLine ? Environment.NewLine : "";
+                    var temp = item.Key switch
                     {
-                        continue;
-                    }
-                    var temp = kvp.Key switch
-                    {
-                        "ui_fieldname" => GetFieldName(),
-                        "ui_all_stock_day_make" => $"{Environment.NewLine}{field} {daymake,-8:f2}",
-                        "ui_all_stock_all_make" => $"{Environment.NewLine}{field} {allmake,-8:f2}",
+                        "ui_fieldname" => $"{GetFieldName(newline)} ",
+                        "ui_all_stock_day_make" => $"{newline}{field} {daymake,-8:f2} ",
+                        "ui_all_stock_all_make" => $"{newline}{field} {allmake,-8:f2} ",
                         _ => field
                     };
                     content += temp;
@@ -464,7 +490,9 @@ public partial class MainWindow : Window
             Owner = this,
             WindowStartupLocation = WindowStartupLocation.Manual,
             Left = Left + Width,
-            Top = Top
+            Top = Top,
+            Opacity = Opacity,
+            ShowInTaskbar = ShowInTaskbar,
         };
         if (g_configWindow.Visibility == Visibility.Visible)
         {

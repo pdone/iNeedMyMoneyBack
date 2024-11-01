@@ -133,8 +133,7 @@ public static class Utils
             ["ui_limitup"] = ["UpLimit", "涨停"],
             ["ui_limitdown"] = ["DownLimit", "跌停"],
 
-            ["newline"] = [Environment.NewLine, Environment.NewLine],
-            ["space"] = [" ", " "],
+            [ExtendControlObj.NewlineSuffix] = ["NewLine", "换行"],
             ["ui_fieldname"] = ["FieldName", "字段名称"],
             ["ui_all_stock_day_make"] = ["AllStockDayMake", "总持日盈"],
             ["ui_all_stock_all_make"] = ["AllStockAllMake", "总持总盈"],
