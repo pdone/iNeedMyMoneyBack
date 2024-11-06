@@ -81,11 +81,11 @@ public partial class MainWindow : Window
             {
                 if (e.Delta > 0)
                 {
-                    Opacity = Math.Min(Opacity + 0.1, 1.0);
+                    Opacity = Math.Min(Opacity + 0.05, 1.0);
                 }
                 else
                 {
-                    Opacity = Math.Max(Opacity - 0.1, 0.1);
+                    Opacity = Math.Max(Opacity - 0.05, 0.05);
                 }
                 menu.Opacity = Opacity;
                 if (g_configWindow != null)
@@ -179,7 +179,7 @@ public partial class MainWindow : Window
     {
         var asm = Assembly.GetExecutingAssembly();
         var fvi = FileVersionInfo.GetVersionInfo(asm.Location);
-        menu_ver.Header = $"{g_i18n[g_conf.Lang][menu_ver.Name]} {fvi.ProductVersion}";
+        menu_ver.Header = $"{g_i18n[g_conf.Lang][menu_ver.Name]} {fvi.ProductVersion}(_V)";
         SetMenuItemHeader(menu_exit);
         SetMenuItemHeader(menu_dark);
         SetMenuItemHeader(menu_topmost);
@@ -244,17 +244,18 @@ public partial class MainWindow : Window
             {
                 continue;
             }
+            var dot = res.StockName.EndsWith("ETF") ? "f3" : "f2";
             var fieldData = kvp.Key switch
             {
-                "ui_price" => $" {res.CurrentPrice,PricePad:f2}",
+                "ui_price" => $" {res.CurrentPrice.ToString(dot),PricePad}",
                 "ui_change" => $" {res.PriceChangePercent,PricePad:f2}%",
                 "ui_cost" => $" {sc.BuyPrice,PricePad:f2}",
                 "ui_num" => $" {sc.BuyCount,PricePad}",
                 "ui_day_make" => $" {sc.DayMake,PricePad:f0}",
                 "ui_all_make" => $" {sc.AllMake,PricePad:f0}",
-                "ui_yesterday_todayopen" => $" {res.YesterdayClose,PricePad}{Symbols.ArrowRight}{res.TodayOpen,-PricePad}",
-                "ui_lowest_highest" => $" {res.LowestPrice,PricePad}{Symbols.ArrowUpDown}{res.HighestPrice,-PricePad}",
-                "ui_limitup_limitdown" => res.PriceLimitDown != res.PriceLimitUp ? $" {res.PriceLimitDown,PricePad}{Symbols.Wave}{res.PriceLimitUp,-PricePad}" : "",
+                "ui_yesterday_todayopen" => $" {res.YesterdayClose.ToString(dot),PricePad}{Symbols.ArrowRight}{res.TodayOpen.ToString(dot),-PricePad}",
+                "ui_lowest_highest" => $" {res.LowestPrice.ToString(dot),PricePad}{Symbols.ArrowUpDown}{res.HighestPrice.ToString(dot),-PricePad}",
+                "ui_limitup_limitdown" => res.PriceLimitDown != res.PriceLimitUp ? $" {res.PriceLimitDown.ToString(dot),PricePad}{Symbols.Wave}{res.PriceLimitUp.ToString(dot),-PricePad}" : "",
                 _ => ""
             };
             info += fieldData;
@@ -361,8 +362,8 @@ public partial class MainWindow : Window
                     var temp = item.Key switch
                     {
                         "ui_fieldname" => $"{GetFieldName(newline)} ",
-                        "ui_all_stock_day_make" => $"{newline}{field} {daymake,-8:f2} ",
-                        "ui_all_stock_all_make" => $"{newline}{field} {allmake,-8:f2} ",
+                        "ui_all_stock_day_make" => $"{newline}{field} {daymake:f2} ",
+                        "ui_all_stock_all_make" => $"{newline}{field} {allmake:f2} ",
                         _ => field
                     };
                     content += temp;

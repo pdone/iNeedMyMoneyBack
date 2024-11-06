@@ -8,6 +8,10 @@ using System.Text.Json;
 using System.Windows;
 using System.Windows.Interop;
 
+#pragma warning disable IDE0007 // 使用隐式类型
+#pragma warning disable IDE0090 // 使用 "new(...)"
+#pragma warning disable IDE1006 // 命名样式
+
 namespace iNeedMyMoneyBack;
 
 public static class Utils
@@ -100,16 +104,16 @@ public static class Utils
         var langs = new Dictionary<string, string[]>
         {
             ["menu_ver"] = ["Version", "版本"],
-            ["menu_exit"] = ["Exit", "退出"],
+            ["menu_exit"] = ["Exit(_X)", "退出(_X)"],
             ["menu_dark"] = ["Dark mode", "深色模式"],
             ["menu_topmost"] = ["Topmost", "置顶"],
-            ["menu_conf"] = ["Open config", "打开配置"],
-            ["menu_conf_file"] = ["Open config file", "打开配置文件"],
+            ["menu_conf"] = ["Open config(_C).", "打开配置(_C)"],
+            ["menu_conf_file"] = ["Open config file...(_F)", "打开配置文件...(_F)"],
             ["menu_show_in_taskbar"] = ["Show in taskbar", "在任务栏显示"],
             ["menu_data_roll"] = ["Data roll", "数据滚动显示"],
             ["menu_ui"] = ["UI option", "界面选项"],
             ["menu_dev"] = ["Dev option", "开发者选项"],
-            ["menu_lang"] = ["中文界面", "English UI"],
+            ["menu_lang"] = ["中文界面(_E)", "English UI(_E)"],
             ["btn_close"] = ["Close", "关闭"],
             ["col_code"] = ["Code", "代码"],
             ["col_name"] = ["Name", "名称"],
