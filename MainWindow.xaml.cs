@@ -96,6 +96,7 @@ public partial class MainWindow : Window
         };
         Closing += (sender, e) =>
         {
+            g_worker.CancelAsync();
             g_conf.Left = Left;
             g_conf.Top = Top;
             g_conf.Width = Width;
@@ -103,8 +104,8 @@ public partial class MainWindow : Window
             g_conf.Opacity = Opacity;
             Utils.SaveConfig(g_conf);
         };
-        DoWork(null, null);
         g_worker.DoWork += DoWork;
+        g_worker.RunWorkerAsync();
 
         DependencyPropertyDescriptor
             .FromProperty(TopProperty, typeof(Window))
@@ -267,21 +268,24 @@ public partial class MainWindow : Window
         return info;
     }
 
-    public async void DoWork(object sender, EventArgs e)
+    public void DoWork(object sender, EventArgs e)
     {
-        while (!g_worker.IsBusy)
+        while (true)
         {
-            DataUpdate();
-            await Delay();// 请求间隔最低 2s
+            DataUpdate(true);
+            Delay();// 请求间隔最低 2s
         }
     }
 
-    public async void DataUpdate()
+    public async void DataUpdate(bool delay = false)
     {
         if (!Utils.IsTradingTime() && !g_conf.Debug)// 非交易时间
         {
             UpdateUI(g_i18n[g_conf.Lang]["ui_nontrading"]);
-            await Delay(30000);
+            if (delay)
+            {
+                Delay(30000);
+            }
             return;
         }
 
@@ -290,7 +294,7 @@ public partial class MainWindow : Window
             if (g_codeIndex > g_conf.Stocks.Count - 1)
             {
                 g_codeIndex = 0;
-                await Delay();
+                Delay();
                 return;
             }
 
@@ -299,7 +303,7 @@ public partial class MainWindow : Window
             if (res == null)
             {
                 UpdateUI(g_i18n[g_conf.Lang]["ui_getdatafialed"], UIStatus.ProgramError);
-                await Delay(10000);
+                Delay(10000);
                 return;
             }
             var text = StockInfoHandle(ref stock, res);
@@ -329,7 +333,7 @@ public partial class MainWindow : Window
             if (res == null || res.Count == 0)
             {
                 UpdateUI(g_i18n[g_conf.Lang]["ui_getdatafialed"], UIStatus.ProgramError);
-                await Delay(10000);
+                Delay(10000);
                 return;
             }
             var daymake = 0.0;// 总持日盈
@@ -390,9 +394,14 @@ public partial class MainWindow : Window
         }
     }
 
-    private async Task Delay(int ms = 2000)
+    private void Delay(int ms)
     {
-        await Task.Delay(g_conf.Interval < 2 ? ms : g_conf.Interval * 1000);
+        Task.Delay(ms).Wait();
+    }
+
+    private void Delay()
+    {
+        Delay(g_conf.Interval < 2 ? 2000 : g_conf.Interval * 1000);
     }
 
     public static Brush color_bg;
