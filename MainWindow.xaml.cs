@@ -103,7 +103,7 @@ public partial class MainWindow : Window
             g_conf.Opacity = Opacity;
             Utils.SaveConfig(g_conf);
         };
-        DoWork();
+        DoWork(null, null);
         g_worker.DoWork += DoWork;
 
         DependencyPropertyDescriptor
@@ -238,6 +238,8 @@ public partial class MainWindow : Window
         var makeMoney = res.CurrentPrice - sc.BuyPrice;
         sc.DayMake = res.PriceChange * sc.BuyCount;
         sc.AllMake = makeMoney * sc.BuyCount;
+        sc.Cost = sc.BuyPrice * sc.BuyCount;
+        sc.MarketValue = sc.Cost + sc.AllMake;
         foreach (var kvp in g_conf.FieldControls)
         {
             if (!kvp.Value)// 启用字段
@@ -249,8 +251,10 @@ public partial class MainWindow : Window
             {
                 "ui_price" => $" {res.CurrentPrice.ToString(dot),PricePad}",
                 "ui_change" => $" {res.PriceChangePercent,PricePad:f2}%",
-                "ui_cost" => $" {sc.BuyPrice,PricePad:f2}",
+                "ui_buy_price" => $" {sc.BuyPrice,PricePad:f2}",
                 "ui_num" => $" {sc.BuyCount,PricePad}",
+                "ui_cost" => $" {sc.Cost,PricePad:f0}",
+                "ui_market_value" => $" {sc.MarketValue,PricePad:f0}",
                 "ui_day_make" => $" {sc.DayMake,PricePad:f0}",
                 "ui_all_make" => $" {sc.AllMake,PricePad:f0}",
                 "ui_yesterday_todayopen" => $" {res.YesterdayClose.ToString(dot),PricePad}{Symbols.ArrowRight}{res.TodayOpen.ToString(dot),-PricePad}",
@@ -263,116 +267,126 @@ public partial class MainWindow : Window
         return info;
     }
 
-    public async void DoWork(object sender = null, EventArgs e = null)
+    public async void DoWork(object sender, EventArgs e)
     {
         while (!g_worker.IsBusy)
         {
-            if (!Utils.IsTradingTime() && !g_conf.Debug)// 非交易时间
+            DataUpdate();
+            await Delay();// 请求间隔最低 2s
+        }
+    }
+
+    public async void DataUpdate()
+    {
+        if (!Utils.IsTradingTime() && !g_conf.Debug)// 非交易时间
+        {
+            UpdateUI(g_i18n[g_conf.Lang]["ui_nontrading"]);
+            await Delay(30000);
+            return;
+        }
+
+        if (g_conf.DataRoll)// 单行数据滚动展示
+        {
+            if (g_codeIndex > g_conf.Stocks.Count - 1)
             {
-                UpdateUI(g_i18n[g_conf.Lang]["ui_nontrading"]);
-                await Delay(30000);
-                continue;
+                g_codeIndex = 0;
+                await Delay();
+                return;
             }
 
-            if (g_conf.DataRoll)// 单行数据滚动展示
+            var stock = g_conf.Stocks.ElementAt(g_codeIndex);
+            var res = await Request(stock);
+            if (res == null)
             {
-                if (g_codeIndex > g_conf.Stocks.Count - 1)
-                {
-                    g_codeIndex = 0;
-                    await Delay();
-                    continue;
-                }
+                UpdateUI(g_i18n[g_conf.Lang]["ui_getdatafialed"], UIStatus.ProgramError);
+                await Delay(10000);
+                return;
+            }
+            var text = StockInfoHandle(ref stock, res);
+            if (res.CurrentPrice >= res.PriceLimitUp)
+            {
+                UpdateUI(text, UIStatus.UpLimit);
+            }
+            else if (res.CurrentPrice <= res.PriceLimitDown)
+            {
+                UpdateUI(text, UIStatus.DownLimit);
+            }
+            else
+            {
+                UpdateUI(text);
+            }
 
-                var stock = g_conf.Stocks.ElementAt(g_codeIndex);
-                var res = await Request(stock);
-                if (res == null)
+            g_codeIndex++;
+            if (g_conf.Stocks.Count < g_codeIndex + 1)
+            {
+                g_codeIndex = 0;
+            }
+        }
+        else// 多行数据同步展示
+        {
+            var stocks = g_conf.Stocks;
+            var res = await Request(stocks);
+            if (res == null || res.Count == 0)
+            {
+                UpdateUI(g_i18n[g_conf.Lang]["ui_getdatafialed"], UIStatus.ProgramError);
+                await Delay(10000);
+                return;
+            }
+            var daymake = 0.0;// 总持日盈
+            var allmake = 0.0;// 总持总盈
+            var allcost = 0.0;// 总成本
+            var allmarketvalue = 0.0;// 总市值
+            foreach (var info in res)
+            {
+                var stock = stocks.FirstOrDefault(x => x.Code.Trim().Remove(0, 2) == info.StockCode);
+                if (stock == null)
                 {
-                    UpdateUI(g_i18n[g_conf.Lang]["ui_getdatafialed"], UIStatus.ProgramError);
-                    await Delay(10000);
                     continue;
                 }
-                var text = StockInfoHandle(ref stock, res);
-                if (res.CurrentPrice >= res.PriceLimitUp)
+                var text = StockInfoHandle(ref stock, info);
+                if (g_codeDatas.ContainsKey(stock.Code))
                 {
-                    UpdateUI(text, UIStatus.UpLimit);
-                }
-                else if (res.CurrentPrice <= res.PriceLimitDown)
-                {
-                    UpdateUI(text, UIStatus.DownLimit);
+                    g_codeDatas[stock.Code] = text;
                 }
                 else
                 {
-                    UpdateUI(text);
+                    g_codeDatas.Add(stock.Code, text);
                 }
-
-                g_codeIndex++;
-                if (g_conf.Stocks.Count < g_codeIndex + 1)
-                {
-                    g_codeIndex = 0;
-                }
+                daymake += stock.DayMake;
+                allmake += stock.AllMake;
+                allcost += stock.Cost;
+                allmarketvalue += stock.Cost + stock.AllMake;
             }
-            else// 多行数据同步展示
+            var list = g_codeDatas.Select(x => x.Value);
+            var content = string.Join(Environment.NewLine, list);
+            foreach (var item in g_conf.ExtendControls)
             {
-                var stocks = g_conf.Stocks;
-                var res = await Request(stocks);
-                if (res == null || res.Count == 0)
+                if (!item.Visable)
                 {
-                    UpdateUI(g_i18n[g_conf.Lang]["ui_getdatafialed"], UIStatus.ProgramError);
-                    await Delay(10000);
+                    if (item.NewLine)
+                    {
+                        content += Environment.NewLine;
+                    }
                     continue;
                 }
-                var daymake = 0.0;
-                var allmake = 0.0;
-                foreach (var info in res)
+                if (!g_i18n[g_conf.Lang].TryGetValue(item.Key, out var field))
                 {
-                    var stock = stocks.FirstOrDefault(x => x.Code.Trim().Remove(0, 2) == info.StockCode);
-                    if (stock == null)
-                    {
-                        continue;
-                    }
-                    var text = StockInfoHandle(ref stock, info);
-                    if (g_codeDatas.ContainsKey(stock.Code))
-                    {
-                        g_codeDatas[stock.Code] = text;
-                    }
-                    else
-                    {
-                        g_codeDatas.Add(stock.Code, text);
-                    }
-                    daymake += stock.DayMake;
-                    allmake += stock.AllMake;
+                    continue;
                 }
-                var list = g_codeDatas.Select(x => x.Value);
-                var content = string.Join(Environment.NewLine, list);
-                foreach (var item in g_conf.ExtendControls)
+                var newline = item.NewLine ? Environment.NewLine : "";
+                var temp = item.Key switch
                 {
-                    if (!item.Visable)
-                    {
-                        if (item.NewLine)
-                        {
-                            content += Environment.NewLine;
-                        }
-                        continue;
-                    }
-                    if (!g_i18n[g_conf.Lang].TryGetValue(item.Key, out var field))
-                    {
-                        continue;
-                    }
-                    var newline = item.NewLine ? Environment.NewLine : "";
-                    var temp = item.Key switch
-                    {
-                        "ui_fieldname" => $"{GetFieldName(newline)} ",
-                        "ui_all_stock_day_make" => $"{newline}{field} {daymake:f2} ",
-                        "ui_all_stock_all_make" => $"{newline}{field} {allmake:f2} ",
-                        _ => field
-                    };
-                    content += temp;
-                }
-
-                UpdateUI(content);
+                    "ui_fieldname" => $"{GetFieldName(newline)} ",
+                    "ui_all_stock_day_make" => $"{newline}{field} {daymake:f2} ",
+                    "ui_all_stock_all_make" => $"{newline}{field} {allmake:f2} ",
+                    "ui_all_cost" => $"{newline}{field} {allcost:f2} ",
+                    "ui_all_market_value" => $"{newline}{field} {allmarketvalue:f2} ",
+                    _ => field
+                };
+                content += temp;
             }
 
-            await Delay();// 请求间隔最低 2s
+            UpdateUI(content);
         }
     }
 
@@ -545,7 +559,7 @@ public partial class MainWindow : Window
                 case "menu_lang":
                     g_conf.Lang = g_conf.Lang == "cn" ? "en" : "cn";
                     InitLang();
-                    DoWork();
+                    DataUpdate();
                     g_configWindow?.InitLang();
                     break;
                 case "menu_ver":
@@ -554,7 +568,7 @@ public partial class MainWindow : Window
                     if (res == MessageBoxResult.Yes)
                     {
                         g_conf.Debug = !g_conf.Debug;
-                        DoWork();
+                        DataUpdate();
                     }
                     break;
             }

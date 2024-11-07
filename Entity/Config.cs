@@ -60,6 +60,16 @@ public class StockConfig
     {
         get; set;
     }
+
+    public double Cost
+    {
+        get; set;
+    }
+
+    public double MarketValue
+    {
+        get; set;
+    }
 }
 
 public class Config
@@ -119,8 +129,10 @@ public class Config
     {
         {"ui_price",true},
         {"ui_change",true},
-        {"ui_cost",true},
+        {"ui_buy_price",true},
         {"ui_num",true},
+        {"ui_cost",true},
+        {"ui_market_value",true},
         {"ui_day_make",true},
         {"ui_all_make",true},
         {"ui_yesterday_todayopen",true},
@@ -135,6 +147,8 @@ public class Config
         new ExtendControlObj("ui_fieldname"),
         new ExtendControlObj("ui_all_stock_day_make"),
         new ExtendControlObj("ui_all_stock_all_make"),
+        new ExtendControlObj("ui_all_cost"),
+        new ExtendControlObj("ui_all_market_value"),
     ];
 }
 

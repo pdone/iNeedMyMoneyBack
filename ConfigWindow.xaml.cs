@@ -133,7 +133,7 @@ public partial class ConfigWindow : Window
             {
                 ec2.NewLine = (bool)checkBox.IsChecked;
             }
-            _mainWindow.DoWork(null, null);
+            _mainWindow.DataUpdate();
         }
     }
 
