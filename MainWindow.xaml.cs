@@ -19,9 +19,9 @@ namespace iNeedMyMoneyBack;
 /// </summary>
 public partial class MainWindow : Window
 {
-    private RestClient g_client;
     public static Config g_conf = new();
     public static Dictionary<string, Dictionary<string, string>> g_i18n;
+    private RestClient g_client;
     private static int g_codeIndex = 0;
     private static readonly Dictionary<string, string> g_codeDatas = [];
     private readonly BackgroundWorker g_worker = new()
@@ -29,7 +29,17 @@ public partial class MainWindow : Window
         WorkerSupportsCancellation = true,
     };
     private ConfigWindow g_configWindow;
-
+    /// <summary>
+    /// 增加菜单不透明度 避免与主界面重叠时显示不清除
+    /// </summary>
+    private const double MenuOpacityAdded = 0.2;
+    /// <summary>
+    /// 数值补齐长度
+    /// </summary>
+    private const int PricePad = 5;
+    /// <summary>
+    /// 常用符号
+    /// </summary>
     public struct Symbols
     {
         public const string ArrowRight = "→";
@@ -37,10 +47,11 @@ public partial class MainWindow : Window
         public const string ArrowLeftRight = "↔";
         public const string ArrowUp = "↑";
         public const string ArrowUpDown = "↕";
-        public const string Wave = "~";
-
+        public const string Wave = "↗";
     }
-
+    /// <summary>
+    /// 界面状态
+    /// </summary>
     public enum UIStatus
     {
         Normal,
@@ -52,10 +63,14 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        Init();
+        InitGlobalData();
+        InitUI();
     }
 
-    private void Init()
+    /// <summary>
+    /// 初始化全局数据
+    /// </summary>
+    private void InitGlobalData()
     {
         g_i18n = Utils.LoadLangData();
         g_conf = Utils.LoadConfig();
@@ -66,47 +81,45 @@ public partial class MainWindow : Window
             g_conf.Stocks.Add(new StockConfig("sz399001"));
         }
 
-        InitUI();
-
         if (g_client == null)
         {
             g_client = new RestClient(g_conf.Api);
             g_client.AddDefaultHeader("User-Agent", g_conf.UserAgent);
         }
+    }
 
-        MouseDown += (sender, e) => Utils.DragWindow(this);
-        MouseWheel += (_, e) =>
-        {
-            if (Keyboard.Modifiers == ModifierKeys.Control)
-            {
-                if (e.Delta > 0)
-                {
-                    Opacity = Math.Min(Opacity + 0.05, 1.0);
-                }
-                else
-                {
-                    Opacity = Math.Max(Opacity - 0.05, 0.05);
-                }
-                menu.Opacity = Opacity;
-                if (g_configWindow != null)
-                {
-                    g_configWindow.Opacity = Opacity;
-                }
-            }
-        };
-        Closing += (sender, e) =>
-        {
-            g_worker.CancelAsync();
-            g_conf.Left = Left;
-            g_conf.Top = Top;
-            g_conf.Width = Width;
-            g_conf.Height = Height;
-            g_conf.Opacity = Opacity;
-            Utils.SaveConfig(g_conf);
-        };
+    /// <summary>
+    /// 初始化界面
+    /// </summary>
+    private void InitUI()
+    {
+        // 界面属性赋值
+        Width = g_conf.Width;
+        Height = g_conf.Height;
+        Left = g_conf.Left;
+        Top = g_conf.Top;
+        Opacity = g_conf.Opacity;
+        Topmost = g_conf.Topmost;
+        ShowInTaskbar = g_conf.ShowInTaskbar;
+        menu.Opacity = Math.Min(Opacity + MenuOpacityAdded, 1);
+        menu_dark.IsChecked = g_conf.DarkMode;
+        menu_topmost.IsChecked = g_conf.Topmost;
+        menu_show_in_taskbar.IsChecked = g_conf.ShowInTaskbar;
+        menu_data_roll.IsChecked = g_conf.DataRoll;
+        menu_debug_mode.IsChecked = g_conf.Debug;
+
+        // 界面事件绑定
+        PreviewMouseDown += (_, __) => Utils.DragWindow(this);
+        PreviewMouseWheel += (_, e) => OnPreviewMouseWheel(e);
+        PreviewKeyDown += OnKeyDown;
+        Closing += MainWindow_Closing;
+        menu.PreviewMouseWheel += (_, e) => OnPreviewMouseWheel(e);
+        menu.KeyDown += OnKeyDown;
+        menu_opacity.PreviewMouseWheel += (_, e) => OnPreviewMouseWheel(e, false);
         g_worker.DoWork += DoWork;
         g_worker.RunWorkerAsync();
 
+        // 依赖属性事件绑定
         DependencyPropertyDescriptor
             .FromProperty(TopProperty, typeof(Window))
             .AddValueChanged(this, ConfigWindowAdsorption);
@@ -116,42 +129,11 @@ public partial class MainWindow : Window
         DependencyPropertyDescriptor
             .FromProperty(WidthProperty, typeof(Window))
             .AddValueChanged(this, ConfigWindowAdsorption);
-    }
 
-    /// <summary>
-    /// 配置界面吸附主界面
-    /// </summary>
-    /// <param name="o"></param>
-    /// <param name="eventArgs"></param>
-    private void ConfigWindowAdsorption(object o, EventArgs eventArgs)
-    {
-        if (g_configWindow != null)
-        {
-            g_configWindow.Left = Left + Width;
-            g_configWindow.Top = Top;
-        }
-    }
-
-    /// <summary>
-    /// 初始化界面
-    /// </summary>
-    private void InitUI()
-    {
-        Width = g_conf.Width;
-        Height = g_conf.Height;
-        Left = g_conf.Left;
-        Top = g_conf.Top;
-        menu_dark.IsChecked = g_conf.DarkMode;
-        menu_topmost.IsChecked = g_conf.Topmost;
-        menu.Opacity = g_conf.Opacity;
-        Opacity = g_conf.Opacity;
-        Topmost = g_conf.Topmost;
-        ShowInTaskbar = g_conf.ShowInTaskbar;
-        menu_show_in_taskbar.IsChecked = g_conf.ShowInTaskbar;
-        menu_data_roll.IsChecked = g_conf.DataRoll;
         InitColor();
         InitLang();
     }
+
     /// <summary>
     /// 初始化配色
     /// </summary>
@@ -172,7 +154,22 @@ public partial class MainWindow : Window
         lb.Foreground = color_fg;
         menu.Background = color_bg;
         menu.Foreground = color_fg;
+        Resources["TextColor"] = color_fg;
+        Resources["SubMenuBackground"] = color_bg;
+
+        var tempSubMenuMask = new SolidColorBrush
+        {
+            Color = color_bg.Color,
+            Opacity = menu.Opacity
+        };
+        Resources["SubMenuMask"] = tempSubMenuMask;
+        var tempHoverBg = new SolidColorBrush
+        {
+            Color = g_conf.DarkMode ? Color.FromRgb(51, 51, 51) : Color.FromRgb(187, 187, 187),
+        };
+        Resources["HoverBackground"] = tempHoverBg;
     }
+
     /// <summary>
     /// 初始化语言配置
     /// </summary>
@@ -181,26 +178,155 @@ public partial class MainWindow : Window
         var asm = Assembly.GetExecutingAssembly();
         var fvi = FileVersionInfo.GetVersionInfo(asm.Location);
         menu_ver.Header = $"{g_i18n[g_conf.Lang][menu_ver.Name]} {fvi.ProductVersion}(_V)";
-        SetMenuItemHeader(menu_exit);
-        SetMenuItemHeader(menu_dark);
-        SetMenuItemHeader(menu_topmost);
-        SetMenuItemHeader(menu_conf);
-        SetMenuItemHeader(menu_exit);
-        SetMenuItemHeader(menu_conf_file);
-        SetMenuItemHeader(menu_show_in_taskbar);
-        SetMenuItemHeader(menu_data_roll);
-        SetMenuItemHeader(menu_lang);
+        SetMenuItemHeader(menu_exit, "X");
+        SetMenuItemHeader(menu_dark, "N");
+        SetMenuItemHeader(menu_topmost, "T");
+        SetMenuItemHeader(menu_conf, "C");
+        SetMenuItemHeader(menu_conf_file, "F");
+        SetMenuItemHeader(menu_show_in_taskbar, "T");
+        SetMenuItemHeader(menu_data_roll, "R");
+        SetMenuItemHeader(menu_lang, "L");
+        SetMenuItemHeader(menu_ui, "U");
+        SetMenuItemHeader(menu_check_update, "U");
+        SetMenuItemHeader(menu_debug_mode, "D");
+        menu_opacity.Header = string.Format(g_i18n[g_conf.Lang]["menu_opacity"], (Opacity * 100).ToString("f0"));
+        menu_opacity.InputGestureText = g_i18n[g_conf.Lang]["menu_opacity_igt"];
+    }
+
+    /// <summary>
+    /// 主窗口关闭事件
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    private void MainWindow_Closing(object sender, CancelEventArgs e)
+    {
+        g_worker.CancelAsync();
+        g_conf.Left = Left;
+        g_conf.Top = Top;
+        g_conf.Width = Width;
+        g_conf.Height = Height;
+        g_conf.Opacity = Opacity;
+        Utils.SaveConfig(g_conf);
+    }
+
+    /// <summary>
+    /// 鼠标滚轮事件
+    /// </summary>
+    /// <param name="e"></param>
+    /// <param name="needPressCtrl"></param>
+    private void OnPreviewMouseWheel(MouseWheelEventArgs e, bool needPressCtrl = true)
+    {
+        if (needPressCtrl)
+        {
+            if (Keyboard.Modifiers != ModifierKeys.Control)
+            {
+                return;
+            }
+        }
+
+        if (e.Delta > 0)
+        {
+            Opacity = Math.Min(Opacity + 0.05, 1.0);
+        }
+        else
+        {
+            Opacity = Math.Max(Opacity - 0.05, 0.05);
+        }
+        if (g_configWindow != null)
+        {
+            g_configWindow.Opacity = Opacity;
+        }
+        menu_opacity.Header = string.Format(g_i18n[g_conf.Lang]["menu_opacity"], (Opacity * 100).ToString("f0"));
+
+        menu.Opacity = Math.Min(Opacity + MenuOpacityAdded, 1);
+        var tempSubMenuMask = new SolidColorBrush
+        {
+            Color = color_bg.Color,
+            Opacity = menu.Opacity
+        };
+        Resources["SubMenuMask"] = tempSubMenuMask;
+    }
+
+    /// <summary>
+    /// 快捷键事件
+    /// </summary>
+    /// <param name="obj"></param>
+    /// <param name="e"></param>
+    public void OnKeyDown(object obj, KeyEventArgs e)
+    {
+        if (Keyboard.Modifiers == ModifierKeys.Control)
+        {
+            string menuItemName;
+            switch (e.Key)
+            {
+                case Key.U:
+                    menuItemName = menu_check_update.Name;
+                    break;
+                case Key.D:
+                    menuItemName = menu_debug_mode.Name;
+                    break;
+                case Key.C:
+                    menuItemName = menu_conf.Name;
+                    break;
+                case Key.F:
+                    menuItemName = menu_conf_file.Name;
+                    break;
+                case Key.X:
+                    menuItemName = menu_exit.Name;
+                    break;
+                case Key.N:
+                    menuItemName = menu_dark.Name;
+                    break;
+                case Key.R:
+                    menuItemName = menu_data_roll.Name;
+                    break;
+                case Key.T:
+                    menuItemName = menu_topmost.Name;
+                    break;
+                case Key.B:
+                    menuItemName = menu_show_in_taskbar.Name;
+                    break;
+                case Key.L:
+                    menuItemName = menu_lang.Name;
+                    break;
+                default:
+                    return;
+            }
+            OnMenuItemClick(menuItemName);
+            Focus();
+        }
+    }
+
+    /// <summary>
+    /// 配置界面吸附主界面
+    /// </summary>
+    /// <param name="o"></param>
+    /// <param name="eventArgs"></param>
+    private void ConfigWindowAdsorption(object o, EventArgs eventArgs)
+    {
+        if (g_configWindow != null)
+        {
+            g_configWindow.Left = Left + Width;
+            g_configWindow.Top = Top;
+        }
     }
 
     /// <summary>
     /// 设置菜单文本
     /// </summary>
     /// <param name="menuItem"></param>
-    private void SetMenuItemHeader(MenuItem menuItem)
+    private void SetMenuItemHeader(MenuItem menuItem, string shortcuts = null)
     {
         if (g_i18n.ContainsKey(g_conf.Lang) && g_i18n[g_conf.Lang].ContainsKey(menuItem.Name))
         {
-            menuItem.Header = g_i18n[g_conf.Lang][menuItem.Name];
+            if (shortcuts.IsNullOrWhiteSpace())
+            {
+                menuItem.Header = g_i18n[g_conf.Lang][menuItem.Name];
+            }
+            else
+            {
+                menuItem.Header = g_i18n[g_conf.Lang][menuItem.Name] + $"(_{shortcuts})";
+            }
         }
     }
 
@@ -225,7 +351,6 @@ public partial class MainWindow : Window
         return fieldName;
     }
 
-    private const int PricePad = 5;
     /// <summary>
     /// 整理数据
     /// </summary>
@@ -241,6 +366,7 @@ public partial class MainWindow : Window
         sc.AllMake = makeMoney * sc.BuyCount;
         sc.Cost = sc.BuyPrice * sc.BuyCount;
         sc.MarketValue = sc.Cost + sc.AllMake;
+        sc.Yield = sc.AllMake / sc.Cost * 100;
         foreach (var kvp in g_conf.FieldControls)
         {
             if (!kvp.Value)// 启用字段
@@ -256,6 +382,7 @@ public partial class MainWindow : Window
                 "ui_num" => $" {sc.BuyCount,PricePad}",
                 "ui_cost" => $" {sc.Cost,PricePad:f0}",
                 "ui_market_value" => $" {sc.MarketValue,PricePad:f0}",
+                "ui_yield" => $" {sc.Yield,PricePad:f2}%",
                 "ui_day_make" => $" {sc.DayMake,PricePad:f0}",
                 "ui_all_make" => $" {sc.AllMake,PricePad:f0}",
                 "ui_yesterday_todayopen" => $" {res.YesterdayClose.ToString(dot),PricePad}{Symbols.ArrowRight}{res.TodayOpen.ToString(dot),-PricePad}",
@@ -340,6 +467,8 @@ public partial class MainWindow : Window
             var allmake = 0.0;// 总持总盈
             var allcost = 0.0;// 总成本
             var allmarketvalue = 0.0;// 总市值
+            var hasUpLimit = false;
+            var hasDownLimit = false;
             foreach (var info in res)
             {
                 var stock = stocks.FirstOrDefault(x => x.Code.Trim().Remove(0, 2) == info.StockCode);
@@ -360,7 +489,16 @@ public partial class MainWindow : Window
                 allmake += stock.AllMake;
                 allcost += stock.Cost;
                 allmarketvalue += stock.Cost + stock.AllMake;
+                if (info.PriceChangePercent < -9)
+                {
+                    hasDownLimit = true;
+                }
+                else if (info.PriceChangePercent > 9)
+                {
+                    hasUpLimit = true;
+                }
             }
+            var allyield = allmake / allcost * 100;// 总收益率
             var list = g_codeDatas.Select(x => x.Value);
             var content = string.Join(Environment.NewLine, list);
             foreach (var item in g_conf.ExtendControls)
@@ -385,12 +523,21 @@ public partial class MainWindow : Window
                     "ui_all_stock_all_make" => $"{newline}{field} {allmake:f2} ",
                     "ui_all_cost" => $"{newline}{field} {allcost:f2} ",
                     "ui_all_market_value" => $"{newline}{field} {allmarketvalue:f2} ",
+                    "ui_all_yield" => $"{newline}{field} {allyield:f2}% ",
                     _ => field
                 };
                 content += temp;
             }
-
-            UpdateUI(content);
+            var status = UIStatus.Normal;
+            if (hasUpLimit)
+            {
+                status = UIStatus.UpLimit;
+            }
+            else if (hasDownLimit)
+            {
+                status = UIStatus.DownLimit;
+            }
+            UpdateUI(content, status);
         }
     }
 
@@ -404,16 +551,19 @@ public partial class MainWindow : Window
         Delay(g_conf.Interval < 2 ? 2000 : g_conf.Interval * 1000);
     }
 
-    public static Brush color_bg;
-    public static Brush color_fg;
+    public static SolidColorBrush color_bg;
+    public static SolidColorBrush color_fg;
 
     private void UpdateUI(string msg, UIStatus status = UIStatus.Normal)
     {
-        if (status != UIStatus.Normal)
+        Application.Current.Dispatcher.Invoke(() =>
         {
-            UpdateColor(status);
-        }
-        Application.Current.Dispatcher.Invoke(() => { lb.Content = msg; });
+            lb.Content = msg;
+            if (status != UIStatus.Normal)
+            {
+                UpdateColor(status);
+            }
+        });
     }
 
     private void UpdateColor(UIStatus status = UIStatus.Normal)
@@ -530,57 +680,108 @@ public partial class MainWindow : Window
 
     private void MenuItem_Click(object sender, RoutedEventArgs e)
     {
-        var item = (MenuItem)sender;
-        if (item != null)
+        if (sender is MenuItem item)
         {
-            switch (item.Name)
-            {
-                case "menu_exit":
-                    Close();
-                    break;
-                case "menu_dark":
-                    g_conf.DarkMode = !g_conf.DarkMode;
-                    menu_dark.IsChecked = g_conf.DarkMode;
-                    InitColor();
-                    g_configWindow?.InitColor();
-                    break;
-                case "menu_topmost":
-                    g_conf.Topmost = !g_conf.Topmost;
-                    menu_topmost.IsChecked = g_conf.Topmost;
-                    Topmost = g_conf.Topmost;
-                    break;
-                case "menu_conf":
-                    MakeConfigWindow();
-                    break;
-                case "menu_conf_file":
-                    var fullPath = Path.Combine(Utils.UserDataPath, "config.json");
-                    Process.Start(fullPath);
-                    break;
-                case "menu_show_in_taskbar":
-                    g_conf.ShowInTaskbar = !g_conf.ShowInTaskbar;
-                    menu_show_in_taskbar.IsChecked = g_conf.ShowInTaskbar;
-                    ShowInTaskbar = g_conf.ShowInTaskbar;
-                    break;
-                case "menu_data_roll":
-                    g_conf.DataRoll = !g_conf.DataRoll;
-                    menu_data_roll.IsChecked = g_conf.DataRoll;
-                    break;
-                case "menu_lang":
-                    g_conf.Lang = g_conf.Lang == "cn" ? "en" : "cn";
-                    InitLang();
-                    DataUpdate();
-                    g_configWindow?.InitLang();
-                    break;
-                case "menu_ver":
-                default:
-                    var res = MessageBox.Show(this, $"{(g_conf.Debug ? "Disable" : "Enable")} debug mode?", "Tip", MessageBoxButton.YesNo);
-                    if (res == MessageBoxResult.Yes)
-                    {
-                        g_conf.Debug = !g_conf.Debug;
-                        DataUpdate();
-                    }
-                    break;
-            }
+            OnMenuItemClick(item.Name);
         }
+    }
+
+    public void OnMenuItemClick(string menuItemName)
+    {
+        switch (menuItemName)
+        {
+            case "menu_exit":
+                Close();
+                break;
+            case "menu_dark":
+                g_conf.DarkMode = !g_conf.DarkMode;
+                menu_dark.IsChecked = g_conf.DarkMode;
+                InitColor();
+                g_configWindow?.InitColor();
+                break;
+            case "menu_topmost":
+                g_conf.Topmost = !g_conf.Topmost;
+                menu_topmost.IsChecked = g_conf.Topmost;
+                Topmost = g_conf.Topmost;
+                BorderTwinkle(g_conf.Topmost);
+                break;
+            case "menu_conf":
+                MakeConfigWindow();
+                break;
+            case "menu_conf_file":
+                var fullPath = Path.Combine(Utils.UserDataPath, "config.json");
+                Process.Start(fullPath);
+                break;
+            case "menu_show_in_taskbar":
+                g_conf.ShowInTaskbar = !g_conf.ShowInTaskbar;
+                menu_show_in_taskbar.IsChecked = g_conf.ShowInTaskbar;
+                ShowInTaskbar = g_conf.ShowInTaskbar;
+                BorderTwinkle(g_conf.ShowInTaskbar);
+                break;
+            case "menu_data_roll":
+                g_conf.DataRoll = !g_conf.DataRoll;
+                menu_data_roll.IsChecked = g_conf.DataRoll;
+                DataUpdate();
+                break;
+            case "menu_lang":
+                g_conf.Lang = g_conf.Lang == "cn" ? "en" : "cn";
+                InitLang();
+                DataUpdate();
+                g_configWindow?.InitLang();
+                break;
+            case "menu_debug_mode":
+                g_conf.Debug = !g_conf.Debug;
+                menu_debug_mode.IsChecked = g_conf.Debug;
+                DataUpdate();
+                BorderTwinkle(g_conf.Debug);
+                break;
+            case "menu_check_update":
+                MessageBox.Show(this, g_i18n[g_conf.Lang]["ui_msg_check_update"], g_i18n[g_conf.Lang]["ui_title_tip"]);
+                break;
+            default:
+                MessageBox.Show(this, "Nothing happened...", g_i18n[g_conf.Lang]["ui_title_tip"]);
+                break;
+        }
+    }
+
+    /// <summary>
+    /// 边框闪烁
+    /// </summary>
+    /// <param name="onEnable"></param>
+    /// <param name="times"></param>
+    /// <param name="interval"></param>
+    private void BorderTwinkle(bool onEnable, int times = 2, int interval = 200)
+    {
+        Brush color = onEnable ? new SolidColorBrush(Colors.GreenYellow) : new SolidColorBrush(Colors.OrangeRed);
+        BorderTwinkle(color, times, interval);
+    }
+
+    private void BorderTwinkle(Brush color = null, int times = 2, int interval = 200)
+    {
+        color ??= g_conf.DarkMode ? color_fg : new SolidColorBrush(Colors.OrangeRed);
+        Task.Run(() =>
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                border.Padding = new Thickness(0);
+                border.BorderThickness = new Thickness(2);
+                border.BorderBrush = color;
+            });
+            times--;
+            while (times-- > 0)
+            {
+                Delay(interval);
+                Application.Current.Dispatcher.Invoke(() => border.BorderBrush = new SolidColorBrush(Colors.Black));
+                Delay(interval);
+                Application.Current.Dispatcher.Invoke(() => border.BorderBrush = color);
+            }
+            Delay(interval);
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                border.Padding = new Thickness(1);
+                border.BorderThickness = new Thickness(1);
+                border.BorderBrush = new SolidColorBrush(Colors.Black);
+            });
+        });
     }
 }

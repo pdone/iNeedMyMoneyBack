@@ -70,6 +70,11 @@ public class StockConfig
     {
         get; set;
     }
+    
+    public double Yield
+    {
+        get; set;
+    }
 }
 
 public class Config
@@ -135,6 +140,7 @@ public class Config
         {"ui_market_value",true},
         {"ui_day_make",true},
         {"ui_all_make",true},
+        {"ui_yield",true},
         {"ui_yesterday_todayopen",true},
         {"ui_lowest_highest",true},
         {"ui_limitup_limitdown",true},
@@ -149,6 +155,7 @@ public class Config
         new ExtendControlObj("ui_all_stock_all_make"),
         new ExtendControlObj("ui_all_cost"),
         new ExtendControlObj("ui_all_market_value"),
+        new ExtendControlObj("ui_all_yield"),
     ];
 }
 

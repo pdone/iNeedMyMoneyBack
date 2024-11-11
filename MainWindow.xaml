@@ -18,44 +18,191 @@
         WindowStyle="None"
         mc:Ignorable="d">
     <Window.Resources>
+        <SolidColorBrush x:Key="TextColor" />
+        <SolidColorBrush x:Key="SubMenuMask" />
+        <SolidColorBrush x:Key="SubMenuBackground" />
+        <SolidColorBrush x:Key="HoverBackground" />
         <Style TargetType="ContextMenu">
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ContextMenu">
                         <Border Background="{TemplateBinding Background}"
                                 BorderBrush="#000"
-                                BorderThickness="1"
-                                CornerRadius="0">
+                                BorderThickness="1">
                             <ItemsPresenter />
                         </Border>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
+        <Style TargetType="{x:Type MenuItem}">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type MenuItem}">
+                        <Border x:Name="Border"
+                                Padding="2"
+                                Background="Transparent"
+                                BorderThickness="0">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition x:Name="ColIcon"
+                                                      Width="Auto"
+                                                      SharedSizeGroup="MenuItemIconColumnGroup" />
+                                    <ColumnDefinition Width="Auto" SharedSizeGroup="MenuTextColumnGroup" />
+                                    <ColumnDefinition Width="Auto" SharedSizeGroup="MenuItemIGTColumnGroup" />
+                                    <ColumnDefinition x:Name="ColNext" Width="auto" />
+                                </Grid.ColumnDefinitions>
+                                <ContentPresenter x:Name="Icon"
+                                                  Grid.Column="0"
+                                                  Margin="5,0"
+                                                  VerticalAlignment="Center"
+                                                  ContentSource="Icon" />
+                                <Grid x:Name="GlyphPanel"
+                                      Grid.Column="0"
+                                      Margin="5,2"
+                                      VerticalAlignment="Center"
+                                      Visibility="Hidden">
+                                    <TextBlock Text="✔" />
+                                </Grid>
+                                <ContentPresenter x:Name="HeaderHost"
+                                                  Grid.Column="1"
+                                                  Margin="{TemplateBinding Padding}"
+                                                  VerticalAlignment="Center"
+                                                  ContentSource="Header"
+                                                  RecognizesAccessKey="True" />
+                                <ContentPresenter x:Name="IGTHost"
+                                                  Grid.Column="2"
+                                                  Margin="8,0"
+                                                  VerticalAlignment="Center"
+                                                  ContentSource="InputGestureText" />
+                                <Grid x:Name="ArrowPanel"
+                                      Grid.Column="3"
+                                      Margin="5,0"
+                                      VerticalAlignment="Center">
+                                    <Path x:Name="ArrowPanelPath"
+                                          HorizontalAlignment="Right"
+                                          VerticalAlignment="Center"
+                                          Data="M0,0 L0,10 L6,5 z"
+                                          Fill="{DynamicResource TextColor}" />
+                                </Grid>
+                                <Popup x:Name="SubMenuPopup"
+                                       AllowsTransparency="True"
+                                       Focusable="True"
+                                       IsOpen="{Binding Path=IsSubmenuOpen, RelativeSource={RelativeSource TemplatedParent}}"
+                                       Placement="Right">
+                                    <Border x:Name="SubMenuBorder"
+                                            Background="{DynamicResource SubMenuBackground}"
+                                            BorderBrush="#000"
+                                            BorderThickness="1"
+                                            OpacityMask="{DynamicResource SubMenuMask}">
+                                        <Grid x:Name="SubMenu" Grid.IsSharedSizeScope="True">
+                                            <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle" />
+                                        </Grid>
+                                    </Border>
+                                </Popup>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="Role" Value="TopLevelHeader">
+                                <Setter Property="Padding" Value="6,1" />
+                                <Setter Property="Background" Value="Transparent" />
+                                <Setter TargetName="SubMenuPopup" Property="Placement" Value="Bottom" />
+                                <Setter TargetName="ColIcon" Property="MinWidth" Value="0" />
+                                <Setter TargetName="ColNext" Property="Width" Value="Auto" />
+                                <Setter TargetName="Icon" Property="Visibility" Value="Collapsed" />
+                                <Setter TargetName="GlyphPanel" Property="Visibility" Value="Collapsed" />
+                                <Setter TargetName="IGTHost" Property="Visibility" Value="Collapsed" />
+                                <Setter TargetName="ArrowPanel" Property="Visibility" Value="Collapsed" />
+                            </Trigger>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="{DynamicResource HoverBackground}" />
+                            </Trigger>
+                            <Trigger Property="Role" Value="TopLevelItem">
+                                <Setter Property="Padding" Value="6,1" />
+                                <Setter TargetName="ArrowPanel" Property="Visibility" Value="Collapsed" />
+                            </Trigger>
+                            <Trigger Property="Role" Value="SubmenuHeader">
+                                <Setter Property="Padding" Value="5,2" />
+                            </Trigger>
+                            <Trigger Property="Role" Value="SubmenuItem">
+                                <Setter Property="Padding" Value="5,2" />
+                                <Setter TargetName="ArrowPanel" Property="Visibility" Value="Collapsed" />
+                            </Trigger>
+                            <Trigger Property="Icon" Value="{x:Null}">
+                                <Setter TargetName="Icon" Property="Visibility" Value="Collapsed" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="true">
+                                <Setter TargetName="GlyphPanel" Property="Visibility" Value="Visible" />
+                                <Setter TargetName="Icon" Property="Visibility" Value="Collapsed" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="false">
+                                <Setter Property="Foreground" Value="LightGray" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
     <Window.ContextMenu>
-        <ContextMenu Name="menu" FontFamily="{StaticResource SecondFont}">
-            <MenuItem Name="menu_ver" Click="MenuItem_Click" />
-            <MenuItem Name="menu_lang" Click="MenuItem_Click" />
+        <ContextMenu Name="menu"
+                     Padding="0"
+                     FontFamily="{StaticResource SecondFont}">
+            <MenuItem Name="menu_ver">
+                <MenuItem Name="menu_check_update"
+                          Click="MenuItem_Click"
+                          InputGestureText="Ctrl+U" />
+                <Separator />
+                <MenuItem Name="menu_conf_file"
+                          Click="MenuItem_Click"
+                          InputGestureText="Ctrl+F" />
+                <MenuItem Name="menu_debug_mode"
+                          Click="MenuItem_Click"
+                          InputGestureText="Ctrl+D"
+                          StaysOpenOnClick="True" />
+            </MenuItem>
             <Separator />
-            <MenuItem Name="menu_conf" Click="MenuItem_Click" />
-            <MenuItem Name="menu_conf_file" Click="MenuItem_Click" />
-            <MenuItem Name="menu_data_roll" Click="MenuItem_Click" />
-            <MenuItem Name="menu_dark" Click="MenuItem_Click" />
-            <MenuItem Name="menu_topmost" Click="MenuItem_Click" />
-            <MenuItem Name="menu_show_in_taskbar" Click="MenuItem_Click" />
+            <MenuItem Name="menu_conf"
+                      Click="MenuItem_Click"
+                      InputGestureText="Ctrl+C" />
+            <MenuItem Name="menu_data_roll"
+                      Click="MenuItem_Click"
+                      InputGestureText="Ctrl+R"
+                      StaysOpenOnClick="True" />
+            <MenuItem Name="menu_ui">
+                <MenuItem Name="menu_opacity" StaysOpenOnClick="True" />
+                <MenuItem Name="menu_lang"
+                          Click="MenuItem_Click"
+                          InputGestureText="Ctrl+L"
+                          StaysOpenOnClick="True" />
+                <MenuItem Name="menu_dark"
+                          Click="MenuItem_Click"
+                          InputGestureText="Ctrl+N"
+                          StaysOpenOnClick="True" />
+                <MenuItem Name="menu_topmost"
+                          Click="MenuItem_Click"
+                          InputGestureText="Ctrl+T"
+                          StaysOpenOnClick="True" />
+                <MenuItem Name="menu_show_in_taskbar"
+                          Click="MenuItem_Click"
+                          InputGestureText="Ctrl+B"
+                          StaysOpenOnClick="True" />
+            </MenuItem>
             <Separator />
-            <MenuItem Name="menu_exit" Click="MenuItem_Click" />
+            <MenuItem Name="menu_exit"
+                      Click="MenuItem_Click"
+                      InputGestureText="Ctrl+X" />
         </ContextMenu>
     </Window.ContextMenu>
     <Grid Background="Transparent">
         <Border Name="border"
+                Padding="1"
                 Background="#ddd"
                 BorderBrush="#000"
                 BorderThickness="1"
                 CornerRadius="0,10,0,10">
             <Label Name="lb"
-                   Padding="10,2"
+                   Padding="6,1"
                    Content="Loading"
                    FontSize="16" />
         </Border>
