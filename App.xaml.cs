@@ -1,5 +1,25 @@
 ﻿using System;
+using System.Diagnostics;
+using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Windows;
+using iNeedMyMoneyBack;
+
+[assembly: AssemblyTitle(App.ProductName)]
+[assembly: AssemblyDescription("")]
+[assembly: AssemblyConfiguration("")]
+[assembly: AssemblyCompany(App.ProductCompany)]
+[assembly: AssemblyProduct(App.ProductName)]
+[assembly: AssemblyCopyright(App.Copyright)]
+[assembly: AssemblyTrademark("")]
+[assembly: AssemblyCulture("")]
+
+[assembly: ComVisible(false)]
+
+[assembly: ThemeInfo(ResourceDictionaryLocation.None, ResourceDictionaryLocation.SourceAssembly)]
+
+[assembly: AssemblyVersion(App.ProductVersion)]
+[assembly: AssemblyFileVersion(App.ProductVersion)]
 
 namespace iNeedMyMoneyBack;
 
@@ -8,6 +28,14 @@ namespace iNeedMyMoneyBack;
 /// </summary>
 public partial class App : Application
 {
+    public const string ProductName = "iNeedMyMoneyBack";
+    public const string ProductFileName = ProductName + ".exe";
+    public const string ProductCompany = "Pdone Technology Ltd.";
+    public const string ProductVersion = "1.0.0";
+    public const string Copyright = "Copyright © pdone 2025";
+    public const string UpdateMask = "--update";
+    public const string UpdaterFileName = "FreeUpdater.exe";
+
     protected override void OnExit(ExitEventArgs e)
     {
         base.OnExit(e);
@@ -24,10 +52,13 @@ public partial class App : Application
         if (e.ExceptionObject is Exception exception)
         {
             Logger.Error(exception);
-            var dr = MessageBox.Show("未知错误！请将错误日志发送给开发者", "Tip", MessageBoxButton.OKCancel);
+            var dr = MessageBox.Show($"Send the issues to developers?{Environment.NewLine}" +
+                $"Unhandled Exception:{Environment.NewLine}" +
+                $"{exception.Message}",
+                "Error", MessageBoxButton.OKCancel, MessageBoxImage.Error);
             if (dr == MessageBoxResult.OK)
             {
-                System.Diagnostics.Process.Start("https://awaw.cc");
+                Process.Start("https://github.com/pdone");
             }
         }
     }

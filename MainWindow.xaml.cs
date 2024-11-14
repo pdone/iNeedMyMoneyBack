@@ -4,7 +4,6 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -38,6 +37,16 @@ public partial class MainWindow : Window
     /// </summary>
     private const int PricePad = 5;
     /// <summary>
+    /// 界面状态
+    /// </summary>
+    public enum UIStatus
+    {
+        Normal,
+        UpLimit,
+        DownLimit,
+        ProgramError,
+    }
+    /// <summary>
     /// 常用符号
     /// </summary>
     public struct Symbols
@@ -48,16 +57,6 @@ public partial class MainWindow : Window
         public const string ArrowUp = "↑";
         public const string ArrowUpDown = "↕";
         public const string Wave = "↗";
-    }
-    /// <summary>
-    /// 界面状态
-    /// </summary>
-    public enum UIStatus
-    {
-        Normal,
-        UpLimit,
-        DownLimit,
-        ProgramError,
     }
 
     public MainWindow()
@@ -74,6 +73,7 @@ public partial class MainWindow : Window
     {
         g_i18n = Utils.LoadLangData();
         g_conf = Utils.LoadConfig();
+        Utils.LodaUpdater();
 
         if (g_conf != null && g_conf.Stocks.Count == 0)
         {
@@ -175,9 +175,7 @@ public partial class MainWindow : Window
     /// </summary>
     private void InitLang()
     {
-        var asm = Assembly.GetExecutingAssembly();
-        var fvi = FileVersionInfo.GetVersionInfo(asm.Location);
-        menu_ver.Header = $"{g_i18n[g_conf.Lang][menu_ver.Name]} {fvi.ProductVersion}(_V)";
+        menu_ver.Header = $"{g_i18n[g_conf.Lang][menu_ver.Name]} {App.ProductVersion}(_V)";
         SetMenuItemHeader(menu_exit, "X");
         SetMenuItemHeader(menu_dark, "N");
         SetMenuItemHeader(menu_topmost, "T");
@@ -736,7 +734,17 @@ public partial class MainWindow : Window
                 BorderTwinkle(g_conf.Debug);
                 break;
             case "menu_check_update":
-                MessageBox.Show(this, g_i18n[g_conf.Lang]["ui_msg_check_update"], g_i18n[g_conf.Lang]["ui_title_tip"]);
+                var startInfo = new ProcessStartInfo()
+                {
+                    FileName = Utils.UpdaterPath,
+                    Arguments = $"{App.UpdateMask}" +
+                    $" {App.ProductVersion}" +
+                    $" {g_conf.CheckUpdateUrl}" +
+                    $" {Path.Combine(AppDomain.CurrentDomain.BaseDirectory, App.ProductFileName)}" +
+                    $" {Process.GetCurrentProcess().Id}" +
+                    $" {Utils.UpdaterIcoPath}",
+                };
+                Process.Start(startInfo);
                 break;
             default:
                 MessageBox.Show(this, "Nothing happened...", g_i18n[g_conf.Lang]["ui_title_tip"]);

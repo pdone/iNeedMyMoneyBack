@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Resources;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Windows;
@@ -132,7 +133,8 @@ public static class Utils
             ["ui_title_tip"] = ["Tip", "提示"],
             ["ui_title_err"] = ["Error", "错误"],
             ["ui_title_warn"] = ["Warning", "警告"],
-            ["ui_msg_check_update"] = ["You're up to date.", "已经是最新版本。"],
+            ["ui_title_check_update"] = ["Check Update", "检查更新"],
+            ["ui_msg_check_update"] = ["Version {0}\n\nYou're up to date.", "版本 {0}\n\n已经是最新版本。"],
 
             ["ui_name"] = ["Name", "名称"],
             ["ui_price"] = ["Price", "价格"],
@@ -179,11 +181,47 @@ public static class Utils
     #endregion
 
     #region 本地数据
-    public const string ProductName = "iNeedMyMoneyBack";
     /// <summary>
     /// 用户数据目录
     /// </summary>
-    public static string UserDataPath => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), ProductName);
+    public static string UserDataPath => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), App.ProductName);
+    /// <summary>
+    /// 自动更新缓存目录
+    /// </summary>
+    public static string UpdateCachePath => Path.Combine(UserDataPath, "updater");
+    /// <summary>
+    /// 更新器
+    /// </summary>
+    public static string UpdaterPath => Path.Combine(UpdateCachePath, App.UpdaterFileName);
+    public static string UpdaterIcoPath => Path.Combine(UpdateCachePath, "app.ico");
+    /// <summary>
+    /// 加载更新器
+    /// </summary>
+    public static void LodaUpdater()
+    {
+        try
+        {
+            Directory.CreateDirectory(UpdateCachePath);
+            if (!File.Exists(UpdaterPath))
+            {
+                var resourceName = $"{App.ProductName}.Resources.{App.UpdaterFileName}";
+                using Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName);
+                if (stream != null)
+                {
+                    using FileStream fs = new FileStream(UpdaterPath, FileMode.Create, FileAccess.Write);
+                    stream.CopyTo(fs);
+                }
+            }
+            if (!File.Exists(UpdaterIcoPath))
+            {
+                File.WriteAllBytes(UpdaterIcoPath, Resource.App);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex);
+        }
+    }
     /// <summary>
     /// 获取用户配置
     /// </summary>
@@ -292,7 +330,7 @@ public static class Utils
 #region 日志
 public class Logger
 {
-    public static string path = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "logs");
+    public static string path = Path.Combine(Utils.UserDataPath, "logs");
 
     /// <summary>
     /// 启用日志

@@ -70,7 +70,7 @@ public class StockConfig
     {
         get; set;
     }
-    
+
     public double Yield
     {
         get; set;
@@ -83,6 +83,10 @@ public class Config
     /// 调试模式
     /// </summary>
     public bool Debug { get; set; } = false;
+    /// <summary>
+    /// 检查更新地址
+    /// </summary>
+    public string CheckUpdateUrl { get; set; } = "http://10.32.216.79/app/update.xml";
     /// <summary>
     /// 数据接口
     /// </summary>
