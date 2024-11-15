@@ -741,7 +741,6 @@ public partial class MainWindow : Window
                     $" {App.ProductVersion}" +
                     $" {g_conf.CheckUpdateUrl}" +
                     $" {Path.Combine(AppDomain.CurrentDomain.BaseDirectory, App.ProductFileName)}" +
-                    $" {Process.GetCurrentProcess().Id}" +
                     $" {Utils.UpdaterIcoPath}",
                 };
                 Process.Start(startInfo);

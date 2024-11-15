@@ -94,9 +94,6 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="App.config" />
-  </ItemGroup>
-  <ItemGroup>
     <PackageReference Include="Costura.Fody">
       <Version>5.7.0</Version>
       <IncludeAssets>runtime; build; compile; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
