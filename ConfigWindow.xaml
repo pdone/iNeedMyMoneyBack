@@ -123,6 +123,7 @@
                     </DataGrid.Columns>
                 </DataGrid>
                 <WrapPanel x:Name="FieldControls" />
+                <WrapPanel x:Name="StockIndexControls" />
                 <WrapPanel x:Name="ExtendControls" />
             </StackPanel>
         </Border>

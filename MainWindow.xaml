@@ -18,6 +18,7 @@
         WindowStyle="None"
         mc:Ignorable="d">
     <Window.Resources>
+        <RoutedUICommand x:Key="HotKeyCommand" />
         <SolidColorBrush x:Key="TextColor" />
         <SolidColorBrush x:Key="SubMenuMask" />
         <SolidColorBrush x:Key="SubMenuBackground" />

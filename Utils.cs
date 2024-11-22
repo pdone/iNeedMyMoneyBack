@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Resources;
 using System.Runtime.InteropServices;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Interop;
@@ -19,7 +19,8 @@ public static class Utils
 {
     private static readonly JsonSerializerOptions options = new()
     {
-        WriteIndented = true
+        WriteIndented = true,
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
     };
     #region 扩展方法
     public static double Parse(string input)
@@ -100,83 +101,100 @@ public static class Utils
     #endregion
 
     #region 多语言
-    public static Dictionary<string, Dictionary<string, string>> LoadLangData()
+    public const string StockIndexPrefix = "ui_index_";// 指数控件名称前缀
+    public const string NewlineSuffix = "_newline";// 换行控件名称后缀
+
+    private static readonly Dictionary<string, string[]> LanguageDatas = new()
     {
-        var langs = new Dictionary<string, string[]>
+        ["menu_ver"] = ["Version", "版本"],
+        ["menu_check_update"] = ["Check Update", "检查更新"],
+        ["menu_debug_mode"] = ["Debug Mode", "调试模式"],
+        ["menu_exit"] = ["Exit", "退出"],
+        ["menu_dark"] = ["Dark Mode", "深色模式"],
+        ["menu_topmost"] = ["Top Most", "置顶"],
+        ["menu_conf"] = ["Open Config", "打开配置"],
+        ["menu_conf_file"] = ["Open Config File...", "打开配置文件..."],
+        ["menu_show_in_taskbar"] = ["Show in Taskbar", "在任务栏显示"],
+        ["menu_data_roll"] = ["Data Roll", "数据滚动显示"],
+        ["menu_ui"] = ["UI Option", "界面选项"],
+        ["menu_dev"] = ["Dev Option", "开发者选项"],
+        ["menu_lang"] = ["UI Chinese", "英文界面"],
+        ["menu_lang_en"] = ["English", "English"],
+        ["menu_lang_cn"] = ["中文", "中文"],
+        ["menu_opacity"] = ["Opacity {0}%", "不透明度 {0}%"],
+        ["menu_opacity_igt"] = ["Ctrl+Wheel", "Ctrl+滚轮"],
+        ["btn_close"] = ["Close", "关闭"],
+        ["col_code"] = ["Code", "代码"],
+        ["col_name"] = ["Name", "名称"],
+        ["col_nickname"] = ["NickName", "别名"],
+        ["col_buyprice"] = ["BuyPrice", "买价"],
+        ["col_buycount"] = ["BuyCount", "数量"],
+        ["ui_nontrading"] = ["Non-trading", "非交易时间"],
+        ["ui_getdatafialed"] = ["Failed to get data", "获取数据失败"],
+
+        ["ui_title_tip"] = ["Tip", "提示"],
+        ["ui_title_err"] = ["Error", "错误"],
+        ["ui_title_warn"] = ["Warning", "警告"],
+        ["ui_title_check_update"] = ["Check Update", "检查更新"],
+        ["ui_msg_check_update"] = ["Version {0}\n\nYou're up to date.", "版本 {0}\n\n已经是最新版本。"],
+
+        ["ui_name"] = ["Name", "名称"],
+        ["ui_price"] = ["Price", "价格"],
+        ["ui_change"] = ["Change", "涨幅"],
+        ["ui_buy_price"] = ["BuyPrice", "买价"],
+        ["ui_num"] = ["Num", "数量"],
+        ["ui_cost"] = ["Cost", "成本"],
+        ["ui_market_value"] = ["MarketValue", "市值"],
+        ["ui_day_make"] = ["DayMake", "日盈"],
+        ["ui_all_make"] = ["AllMake", "总盈"],
+        ["ui_yield"] = ["Yield", "收益率"],
+        ["ui_yesterday"] = ["LastClose", "昨收"],
+        ["ui_todayopen"] = ["TodayOpen", "今开"],
+        ["ui_highest"] = ["Highest", "最高"],
+        ["ui_lowest"] = ["Lowest", "最低"],
+        ["ui_limitup"] = ["UpLimit", "涨停"],
+        ["ui_limitdown"] = ["DownLimit", "跌停"],
+
+        [NewlineSuffix] = ["NewLine", "换行"],
+        ["ui_fieldname"] = ["FieldName", "字段名称"],
+
+        [StockIndexPrefix + "sh000001"] = ["IndexSzzs", "上证指数"],
+        [StockIndexPrefix + "sz399001"] = ["IndexSzcz", "深证成指"],
+        [StockIndexPrefix + "sz399006"] = ["IndexCybz", "创业板指"],
+        [StockIndexPrefix + "sz399300"] = ["IndexHs300", "沪深300"],
+        [StockIndexPrefix + "bj899050"] = ["IndexBz50", "北证50"],
+
+        ["ui_all_stock_day_make"] = ["AllStockDayMake", "总持日盈"],
+        ["ui_all_stock_all_make"] = ["AllStockAllMake", "总持总盈"],
+        ["ui_all_cost"] = ["AllCost", "总成本"],
+        ["ui_all_market_value"] = ["AllMarketValue", "总市值"],
+        ["ui_all_yield"] = ["AllYield", "总收益率"],
+
+        ["ui_yesterday_todayopen"] = ["LastClose TodayOpen", "昨收今开"],
+        ["ui_lowest_highest"] = ["Lowest Highest", "最低最高"],
+        ["ui_limitup_limitdown"] = ["UpLimit DownLimit", "涨停跌停"],
+    };
+
+    private static Dictionary<string, Dictionary<string, string>> _i18n = null;
+    public static Dictionary<string, Dictionary<string, string>> i18n
+    {
+        get
         {
-            ["menu_ver"] = ["Version", "版本"],
-            ["menu_check_update"] = ["Check Update", "检查更新"],
-            ["menu_debug_mode"] = ["Debug Mode", "调试模式"],
-            ["menu_exit"] = ["Exit", "退出"],
-            ["menu_dark"] = ["Dark Mode", "深色模式"],
-            ["menu_topmost"] = ["Top Most", "置顶"],
-            ["menu_conf"] = ["Open Config", "打开配置"],
-            ["menu_conf_file"] = ["Open Config File...", "打开配置文件..."],
-            ["menu_show_in_taskbar"] = ["Show in Taskbar", "在任务栏显示"],
-            ["menu_data_roll"] = ["Data Roll", "数据滚动显示"],
-            ["menu_ui"] = ["UI Option", "界面选项"],
-            ["menu_dev"] = ["Dev Option", "开发者选项"],
-            ["menu_lang"] = ["UI Chinese", "英文界面"],
-            ["menu_lang_en"] = ["English", "English"],
-            ["menu_lang_cn"] = ["中文", "中文"],
-            ["menu_opacity"] = ["Opacity {0}%", "不透明度 {0}%"],
-            ["menu_opacity_igt"] = ["Ctrl+Wheel", "Ctrl+滚轮"],
-            ["btn_close"] = ["Close", "关闭"],
-            ["col_code"] = ["Code", "代码"],
-            ["col_name"] = ["Name", "名称"],
-            ["col_nickname"] = ["NickName", "别名"],
-            ["col_buyprice"] = ["BuyPrice", "买价"],
-            ["col_buycount"] = ["BuyCount", "数量"],
-            ["ui_nontrading"] = ["Non-trading", "非交易时间"],
-            ["ui_getdatafialed"] = ["Failed to get data", "获取数据失败"],
-
-            ["ui_title_tip"] = ["Tip", "提示"],
-            ["ui_title_err"] = ["Error", "错误"],
-            ["ui_title_warn"] = ["Warning", "警告"],
-            ["ui_title_check_update"] = ["Check Update", "检查更新"],
-            ["ui_msg_check_update"] = ["Version {0}\n\nYou're up to date.", "版本 {0}\n\n已经是最新版本。"],
-
-            ["ui_name"] = ["Name", "名称"],
-            ["ui_price"] = ["Price", "价格"],
-            ["ui_change"] = ["Change", "涨幅"],
-            ["ui_buy_price"] = ["BuyPrice", "买价"],
-            ["ui_num"] = ["Num", "数量"],
-            ["ui_cost"] = ["Cost", "成本"],
-            ["ui_market_value"] = ["MarketValue", "市值"],
-            ["ui_day_make"] = ["DayMake", "日盈"],
-            ["ui_all_make"] = ["AllMake", "总盈"],
-            ["ui_yield"] = ["Yield", "收益率"],
-            ["ui_yesterday"] = ["LastClose", "昨收"],
-            ["ui_todayopen"] = ["TodayOpen", "今开"],
-            ["ui_highest"] = ["Highest", "最高"],
-            ["ui_lowest"] = ["Lowest", "最低"],
-            ["ui_limitup"] = ["UpLimit", "涨停"],
-            ["ui_limitdown"] = ["DownLimit", "跌停"],
-
-            [ExtendControlObj.NewlineSuffix] = ["NewLine", "换行"],
-            ["ui_fieldname"] = ["FieldName", "字段名称"],
-            ["ui_all_stock_day_make"] = ["AllStockDayMake", "总持日盈"],
-            ["ui_all_stock_all_make"] = ["AllStockAllMake", "总持总盈"],
-            ["ui_all_cost"] = ["AllCost", "总成本"],
-            ["ui_all_market_value"] = ["AllMarketValue", "总市值"],
-            ["ui_all_yield"] = ["AllYield", "总收益率"],
-
-            ["ui_yesterday_todayopen"] = ["LastClose TodayOpen", "昨收今开"],
-            ["ui_lowest_highest"] = ["Lowest Highest", "最低最高"],
-            ["ui_limitup_limitdown"] = ["UpLimit DownLimit", "涨停跌停"],
-        };
-
-        var en = langs.Select(x => new KeyValuePair<string, string>(x.Key, x.Value[0]))
-            .ToDictionary(x => x.Key, x => x.Value);
-        var zh_CN = langs.Select(x => new KeyValuePair<string, string>(x.Key, x.Value[1]))
-            .ToDictionary(x => x.Key, x => x.Value); ;
-
-        var dict = new Dictionary<string, Dictionary<string, string>>
-        {
-            { "en", en },
-            { "cn", zh_CN }
-        };
-        return dict;
+            if (_i18n == null)
+            {
+                var en = LanguageDatas.Select(x => new KeyValuePair<string, string>(x.Key, x.Value[0]))
+                    .ToDictionary(x => x.Key, x => x.Value);
+                var zh_CN = LanguageDatas.Select(x => new KeyValuePair<string, string>(x.Key, x.Value[1]))
+                    .ToDictionary(x => x.Key, x => x.Value); ;
+                _i18n = new Dictionary<string, Dictionary<string, string>>
+                {
+                    { "en", en },
+                    { "cn", zh_CN }
+                };
+                return _i18n;
+            }
+            return _i18n;
+        }
     }
     #endregion
 
@@ -216,52 +234,6 @@ public static class Utils
             {
                 File.WriteAllBytes(UpdaterIcoPath, Resource.App);
             }
-        }
-        catch (Exception ex)
-        {
-            Logger.Error(ex);
-        }
-    }
-    /// <summary>
-    /// 获取用户配置
-    /// </summary>
-    /// <returns></returns>
-    public static Config LoadConfig()
-    {
-        var conf = new Config();
-        try
-        {
-            var fullPath = Path.Combine(UserDataPath, "config.json");
-            Directory.CreateDirectory(UserDataPath);
-            if (!File.Exists(fullPath))
-            {
-                File.WriteAllText(fullPath, conf.ToStr());
-            }
-            StreamReader reader = File.OpenText(fullPath);
-            conf = reader.ReadToEnd().ToObj<Config>();
-            reader.Close();
-        }
-        catch (Exception ex)
-        {
-            Logger.Error(ex);
-        }
-        return conf;
-    }
-    /// <summary>
-    /// 写入用户配置
-    /// </summary>
-    public static void SaveConfig(Config conf)
-    {
-        try
-        {
-            var fullPath = Path.Combine(UserDataPath, "config.json");
-            Directory.CreateDirectory(UserDataPath);
-            var invalids = new List<StockConfig>();
-            conf.Stocks.RemoveAll(x =>
-            {
-                return x.Code.IsNullOrWhiteSpace();
-            });
-            File.WriteAllText(fullPath, conf.ToStr());
         }
         catch (Exception ex)
         {

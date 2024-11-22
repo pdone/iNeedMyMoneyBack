@@ -4,65 +4,71 @@ namespace iNeedMyMoneyBack;
 
 internal class StockInfo
 {
-    public StockInfo(string content)
+    public static StockInfo Get(string content)
     {
-        if (content.IsNullOrWhiteSpace())
+        StockInfo info = new();
+        try
         {
-            throw new ArgumentNullException("content");
+            content = content.Remove(0, content.IndexOf("\"") + 1);
+            content = content.Remove(content.IndexOf("\""), content.Length - 1 - content.IndexOf("\""));
+            var args = content.Split('~');
+            info.StockName = args[1];
+            info.StockCode = args[2];
+            info.CurrentPrice = Utils.Parse(args[3]);
+            info.YesterdayClose = Utils.Parse(args[4]);
+            info.TodayOpen = Utils.Parse(args[5]);
+            info.Volume = long.Parse(args[6]);
+            info.OuterDisk = long.Parse(args[7]);
+            info.InnerDisk = long.Parse(args[8]);
+            info.Buy1 = Utils.Parse(args[9]);
+            info.Buy1Volume = long.Parse(args[10]);
+            info.Buy2 = Utils.Parse(args[11]);
+            info.Buy2Volume = long.Parse(args[12]);
+            info.Buy3 = Utils.Parse(args[13]);
+            info.Buy3Volume = long.Parse(args[14]);
+            info.Buy4 = Utils.Parse(args[15]);
+            info.Buy4Volume = long.Parse(args[16]);
+            info.Buy5 = Utils.Parse(args[17]);
+            info.Buy5Volume = long.Parse(args[18]);
+            info.Sell1 = Utils.Parse(args[19]);
+            info.Sell1Volume = long.Parse(args[20]);
+            info.Sell2 = Utils.Parse(args[21]);
+            info.Sell2Volume = long.Parse(args[22]);
+            info.Sell3 = Utils.Parse(args[23]);
+            info.Sell3Volume = long.Parse(args[24]);
+            info.Sell4 = Utils.Parse(args[25]);
+            info.Sell4Volume = long.Parse(args[26]);
+            info.Sell5 = Utils.Parse(args[27]);
+            info.Sell5Volume = long.Parse(args[28]);
+            info.RecentTransaction = args[29];
+            info.Time = DateTime.ParseExact(args[30], "yyyyMMddHHmmss", null);
+            info.PriceChange = Utils.Parse(args[31]);
+            info.PriceChangePercent = Utils.Parse(args[32]);
+            info.HighestPrice = Utils.Parse(args[33]);
+            info.LowestPrice = Utils.Parse(args[34]);
+            info.PriceVolumeAmount = args[35];
+            info.VolumeHand = long.Parse(args[36]);
+            info.Turnover = Utils.Parse(args[37]);
+            info.TurnoverRate = Utils.Parse(args[38]);
+            info.PE = Utils.Parse(args[39]);
+            //info.HighestPrice2_ = Utils.Parse(args[40]);
+            info.HighestPrice2 = Utils.Parse(args[41]);
+            info.LowestPrice2 = Utils.Parse(args[42]);
+            info.PriceChange2 = Utils.Parse(args[43]);
+            info.CirculationMarketValue = Utils.Parse(args[44]);
+            info.TotalMarketValue = Utils.Parse(args[45]);
+            info.PB = Utils.Parse(args[46]);
+            info.PriceLimitUp = Utils.Parse(args[47]);
+            info.PriceLimitDown = Utils.Parse(args[48]);
+            info.Currency = args[82];
         }
-        content = content.Remove(0, content.IndexOf("\"") + 1);
-        content = content.Remove(content.IndexOf("\""), content.Length - 1 - content.IndexOf("\""));
-        var args = content.Split('~');
-
-        StockName = args[1];
-        StockCode = args[2];
-        CurrentPrice = Utils.Parse(args[3]);
-        YesterdayClose = Utils.Parse(args[4]);
-        TodayOpen = Utils.Parse(args[5]);
-        Volume = long.Parse(args[6]);
-        OuterDisk = long.Parse(args[7]);
-        InnerDisk = long.Parse(args[8]);
-        Buy1 = Utils.Parse(args[9]);
-        Buy1Volume = long.Parse(args[10]);
-        Buy2 = Utils.Parse(args[11]);
-        Buy2Volume = long.Parse(args[12]);
-        Buy3 = Utils.Parse(args[13]);
-        Buy3Volume = long.Parse(args[14]);
-        Buy4 = Utils.Parse(args[15]);
-        Buy4Volume = long.Parse(args[16]);
-        Buy5 = Utils.Parse(args[17]);
-        Buy5Volume = long.Parse(args[18]);
-        Sell1 = Utils.Parse(args[19]);
-        Sell1Volume = long.Parse(args[20]);
-        Sell2 = Utils.Parse(args[21]);
-        Sell2Volume = long.Parse(args[22]);
-        Sell3 = Utils.Parse(args[23]);
-        Sell3Volume = long.Parse(args[24]);
-        Sell4 = Utils.Parse(args[25]);
-        Sell4Volume = long.Parse(args[26]);
-        Sell5 = Utils.Parse(args[27]);
-        Sell5Volume = long.Parse(args[28]);
-        RecentTransaction = args[29];
-        Time = DateTime.ParseExact(args[30], "yyyyMMddHHmmss", null);
-        PriceChange = Utils.Parse(args[31]);
-        PriceChangePercent = Utils.Parse(args[32]);
-        HighestPrice = Utils.Parse(args[33]);
-        LowestPrice = Utils.Parse(args[34]);
-        PriceVolumeAmount = args[35];
-        VolumeHand = long.Parse(args[36]);
-        Turnover = Utils.Parse(args[37]);
-        TurnoverRate = Utils.Parse(args[38]);
-        PE = Utils.Parse(args[39]);
-        //HighestPrice2_ = Utils.Parse(args[40]);
-        HighestPrice2 = Utils.Parse(args[41]);
-        LowestPrice2 = Utils.Parse(args[42]);
-        PriceChange2 = Utils.Parse(args[43]);
-        CirculationMarketValue = Utils.Parse(args[44]);
-        TotalMarketValue = Utils.Parse(args[45]);
-        PB = Utils.Parse(args[46]);
-        PriceLimitUp = Utils.Parse(args[47]);
-        PriceLimitDown = Utils.Parse(args[48]);
-        Currency = args[82];
+        catch (Exception e)
+        {
+            Logger.Debug(content);
+            Logger.Error(e);
+            info = null;
+        }
+        return info;
     }
 
     public string StockName

@@ -52,11 +52,11 @@ public partial class App : Application
         if (e.ExceptionObject is Exception exception)
         {
             Logger.Error(exception);
-            var dr = MessageBox.Show($"Send the issues to developers?{Environment.NewLine}" +
+            var dr = MessageBox.Show($"Send the issues to developers?{Environment.NewLine}{Environment.NewLine}" +
                 $"Unhandled Exception:{Environment.NewLine}" +
                 $"{exception.Message}",
-                "Error", MessageBoxButton.OKCancel, MessageBoxImage.Error);
-            if (dr == MessageBoxResult.OK)
+                "Error", MessageBoxButton.YesNo, MessageBoxImage.Error);
+            if (dr == MessageBoxResult.Yes)
             {
                 Process.Start("https://github.com/pdone");
             }

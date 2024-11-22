@@ -10,6 +10,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using RestSharp;
+using static iNeedMyMoneyBack.Utils;
 
 namespace iNeedMyMoneyBack;
 
@@ -19,7 +20,7 @@ namespace iNeedMyMoneyBack;
 public partial class MainWindow : Window
 {
     public static Config g_conf = new();
-    public static Dictionary<string, Dictionary<string, string>> g_i18n;
+    public static StockConfigArray g_conf_stocks = [];
     private RestClient g_client;
     private static int g_codeIndex = 0;
     private static readonly Dictionary<string, string> g_codeDatas = [];
@@ -28,6 +29,17 @@ public partial class MainWindow : Window
         WorkerSupportsCancellation = true,
     };
     private ConfigWindow g_configWindow;
+    /// <summary>
+    /// 重要指数
+    /// </summary>
+    public readonly StockConfigArray ImportantIndexs =
+    [
+        new StockConfig("sh000001"),
+        new StockConfig("sz399001"),
+        new StockConfig("sz399006"),
+        new StockConfig("sz399300"),
+        new StockConfig("bj899050"),
+    ];
     /// <summary>
     /// 增加菜单不透明度 避免与主界面重叠时显示不清除
     /// </summary>
@@ -64,6 +76,7 @@ public partial class MainWindow : Window
         InitializeComponent();
         InitGlobalData();
         InitUI();
+        LodaUpdater();
     }
 
     /// <summary>
@@ -71,14 +84,13 @@ public partial class MainWindow : Window
     /// </summary>
     private void InitGlobalData()
     {
-        g_i18n = Utils.LoadLangData();
-        g_conf = Utils.LoadConfig();
-        Utils.LodaUpdater();
+        g_conf = Config.Load();
+        g_conf_stocks = StockConfigArray.Load();
 
-        if (g_conf != null && g_conf.Stocks.Count == 0)
+        if (g_conf != null && g_conf_stocks.Count == 0)
         {
-            g_conf.Stocks.Add(new StockConfig("sh000001", "上证指数", 3200));
-            g_conf.Stocks.Add(new StockConfig("sz399001"));
+            g_conf_stocks.Add(new StockConfig("sh000001"));
+            g_conf_stocks.Add(new StockConfig("sz399001"));
         }
 
         if (g_client == null)
@@ -87,7 +99,6 @@ public partial class MainWindow : Window
             g_client.AddDefaultHeader("User-Agent", g_conf.UserAgent);
         }
     }
-
     /// <summary>
     /// 初始化界面
     /// </summary>
@@ -109,7 +120,7 @@ public partial class MainWindow : Window
         menu_debug_mode.IsChecked = g_conf.Debug;
 
         // 界面事件绑定
-        PreviewMouseDown += (_, __) => Utils.DragWindow(this);
+        PreviewMouseDown += (_, __) => DragWindow(this);
         PreviewMouseWheel += (_, e) => OnPreviewMouseWheel(e);
         PreviewKeyDown += OnKeyDown;
         Closing += MainWindow_Closing;
@@ -175,20 +186,20 @@ public partial class MainWindow : Window
     /// </summary>
     private void InitLang()
     {
-        menu_ver.Header = $"{g_i18n[g_conf.Lang][menu_ver.Name]} {App.ProductVersion}(_V)";
+        menu_ver.Header = $"{i18n[g_conf.Lang][menu_ver.Name]} {App.ProductVersion}(_V)";
         SetMenuItemHeader(menu_exit, "X");
         SetMenuItemHeader(menu_dark, "N");
         SetMenuItemHeader(menu_topmost, "T");
         SetMenuItemHeader(menu_conf, "C");
         SetMenuItemHeader(menu_conf_file, "F");
-        SetMenuItemHeader(menu_show_in_taskbar, "T");
+        SetMenuItemHeader(menu_show_in_taskbar, "B");
         SetMenuItemHeader(menu_data_roll, "R");
         SetMenuItemHeader(menu_lang, "L");
         SetMenuItemHeader(menu_ui, "U");
         SetMenuItemHeader(menu_check_update, "U");
         SetMenuItemHeader(menu_debug_mode, "D");
-        menu_opacity.Header = string.Format(g_i18n[g_conf.Lang]["menu_opacity"], (Opacity * 100).ToString("f0"));
-        menu_opacity.InputGestureText = g_i18n[g_conf.Lang]["menu_opacity_igt"];
+        menu_opacity.Header = string.Format(i18n[g_conf.Lang]["menu_opacity"], (Opacity * 100).ToString("f0"));
+        menu_opacity.InputGestureText = i18n[g_conf.Lang]["menu_opacity_igt"];
     }
 
     /// <summary>
@@ -204,7 +215,8 @@ public partial class MainWindow : Window
         g_conf.Width = Width;
         g_conf.Height = Height;
         g_conf.Opacity = Opacity;
-        Utils.SaveConfig(g_conf);
+        g_conf.Save();
+        g_conf_stocks.Save();
     }
 
     /// <summary>
@@ -234,7 +246,7 @@ public partial class MainWindow : Window
         {
             g_configWindow.Opacity = Opacity;
         }
-        menu_opacity.Header = string.Format(g_i18n[g_conf.Lang]["menu_opacity"], (Opacity * 100).ToString("f0"));
+        menu_opacity.Header = string.Format(i18n[g_conf.Lang]["menu_opacity"], (Opacity * 100).ToString("f0"));
 
         menu.Opacity = Math.Min(Opacity + MenuOpacityAdded, 1);
         var tempSubMenuMask = new SolidColorBrush
@@ -291,7 +303,6 @@ public partial class MainWindow : Window
                     return;
             }
             OnMenuItemClick(menuItemName);
-            Focus();
         }
     }
 
@@ -315,22 +326,22 @@ public partial class MainWindow : Window
     /// <param name="menuItem"></param>
     private void SetMenuItemHeader(MenuItem menuItem, string shortcuts = null)
     {
-        if (g_i18n.ContainsKey(g_conf.Lang) && g_i18n[g_conf.Lang].ContainsKey(menuItem.Name))
+        if (i18n.ContainsKey(g_conf.Lang) && i18n[g_conf.Lang].ContainsKey(menuItem.Name))
         {
             if (shortcuts.IsNullOrWhiteSpace())
             {
-                menuItem.Header = g_i18n[g_conf.Lang][menuItem.Name];
+                menuItem.Header = i18n[g_conf.Lang][menuItem.Name];
             }
             else
             {
-                menuItem.Header = g_i18n[g_conf.Lang][menuItem.Name] + $"(_{shortcuts})";
+                menuItem.Header = i18n[g_conf.Lang][menuItem.Name] + $"(_{shortcuts})";
             }
         }
     }
 
     private string GetFieldName(string newline)
     {
-        var fieldName = $"{newline}{g_i18n[g_conf.Lang]["ui_name"]}";
+        var fieldName = $"{newline}{i18n[g_conf.Lang]["ui_name"]}";
         foreach (var kvp in g_conf.FieldControls)
         {
             if (!kvp.Value)// 启用字段
@@ -339,10 +350,10 @@ public partial class MainWindow : Window
             }
             var fieldData = kvp.Key switch
             {
-                "ui_yesterday_todayopen" => $" {g_i18n[g_conf.Lang]["ui_yesterday"]}{Symbols.ArrowRight}{g_i18n[g_conf.Lang]["ui_todayopen"]}",
-                "ui_lowest_highest" => $" {g_i18n[g_conf.Lang]["ui_lowest"]}{Symbols.ArrowUpDown}{g_i18n[g_conf.Lang]["ui_highest"]}",
-                "ui_limitup_limitdown" => $" {g_i18n[g_conf.Lang]["ui_limitdown"]}{Symbols.Wave}{g_i18n[g_conf.Lang]["ui_limitup"]}",
-                _ => $" {g_i18n[g_conf.Lang][kvp.Key]}"
+                "ui_yesterday_todayopen" => $" {i18n[g_conf.Lang]["ui_yesterday"]}{Symbols.ArrowRight}{i18n[g_conf.Lang]["ui_todayopen"]}",
+                "ui_lowest_highest" => $" {i18n[g_conf.Lang]["ui_lowest"]}{Symbols.ArrowUpDown}{i18n[g_conf.Lang]["ui_highest"]}",
+                "ui_limitup_limitdown" => $" {i18n[g_conf.Lang]["ui_limitdown"]}{Symbols.Wave}{i18n[g_conf.Lang]["ui_limitup"]}",
+                _ => $" {i18n[g_conf.Lang][kvp.Key]}"
             };
             fieldName += fieldData;
         }
@@ -364,7 +375,11 @@ public partial class MainWindow : Window
         sc.AllMake = makeMoney * sc.BuyCount;
         sc.Cost = sc.BuyPrice * sc.BuyCount;
         sc.MarketValue = sc.Cost + sc.AllMake;
-        sc.Yield = sc.AllMake / sc.Cost * 100;
+        var hold = sc.BuyCount > 0;// 是否当前持有
+        if (hold)
+        {
+            sc.Yield = sc.AllMake / sc.Cost * 100;
+        }
         foreach (var kvp in g_conf.FieldControls)
         {
             if (!kvp.Value)// 启用字段
@@ -376,13 +391,13 @@ public partial class MainWindow : Window
             {
                 "ui_price" => $" {res.CurrentPrice.ToString(dot),PricePad}",
                 "ui_change" => $" {res.PriceChangePercent,PricePad:f2}%",
-                "ui_buy_price" => $" {sc.BuyPrice,PricePad:f2}",
-                "ui_num" => $" {sc.BuyCount,PricePad}",
-                "ui_cost" => $" {sc.Cost,PricePad:f0}",
-                "ui_market_value" => $" {sc.MarketValue,PricePad:f0}",
-                "ui_yield" => $" {sc.Yield,PricePad:f2}%",
-                "ui_day_make" => $" {sc.DayMake,PricePad:f0}",
-                "ui_all_make" => $" {sc.AllMake,PricePad:f0}",
+                "ui_buy_price" => hold ? $" {sc.BuyPrice,PricePad:f2}" : "",
+                "ui_num" => hold ? $" {sc.BuyCount,PricePad}" : "",
+                "ui_cost" => hold ? $" {sc.Cost,PricePad:f0}" : "",
+                "ui_market_value" => hold ? $" {sc.MarketValue,PricePad:f0}" : "",
+                "ui_yield" => hold ? $" {sc.Yield,PricePad:f2}%" : "",
+                "ui_day_make" => hold ? $" {sc.DayMake,PricePad:f0}" : "",
+                "ui_all_make" => hold ? $" {sc.AllMake,PricePad:f0}" : "",
                 "ui_yesterday_todayopen" => $" {res.YesterdayClose.ToString(dot),PricePad}{Symbols.ArrowRight}{res.TodayOpen.ToString(dot),-PricePad}",
                 "ui_lowest_highest" => $" {res.LowestPrice.ToString(dot),PricePad}{Symbols.ArrowUpDown}{res.HighestPrice.ToString(dot),-PricePad}",
                 "ui_limitup_limitdown" => res.PriceLimitDown != res.PriceLimitUp ? $" {res.PriceLimitDown.ToString(dot),PricePad}{Symbols.Wave}{res.PriceLimitUp.ToString(dot),-PricePad}" : "",
@@ -404,9 +419,9 @@ public partial class MainWindow : Window
 
     public async void DataUpdate(bool delay = false)
     {
-        if (!Utils.IsTradingTime() && !g_conf.Debug)// 非交易时间
+        if (!IsTradingTime() && !g_conf.Debug)// 非交易时间
         {
-            UpdateUI(g_i18n[g_conf.Lang]["ui_nontrading"]);
+            UpdateUI(i18n[g_conf.Lang]["ui_nontrading"]);
             if (delay)
             {
                 Delay(30000);
@@ -416,18 +431,18 @@ public partial class MainWindow : Window
 
         if (g_conf.DataRoll)// 单行数据滚动展示
         {
-            if (g_codeIndex > g_conf.Stocks.Count - 1)
+            if (g_codeIndex > g_conf_stocks.Count - 1)
             {
                 g_codeIndex = 0;
                 Delay();
                 return;
             }
 
-            var stock = g_conf.Stocks.ElementAt(g_codeIndex);
+            var stock = g_conf_stocks.ElementAt(g_codeIndex);
             var res = await Request(stock);
             if (res == null)
             {
-                UpdateUI(g_i18n[g_conf.Lang]["ui_getdatafialed"], UIStatus.ProgramError);
+                UpdateUI(i18n[g_conf.Lang]["ui_getdatafialed"], UIStatus.ProgramError);
                 Delay(10000);
                 return;
             }
@@ -446,18 +461,18 @@ public partial class MainWindow : Window
             }
 
             g_codeIndex++;
-            if (g_conf.Stocks.Count < g_codeIndex + 1)
+            if (g_conf_stocks.Count < g_codeIndex + 1)
             {
                 g_codeIndex = 0;
             }
         }
         else// 多行数据同步展示
         {
-            var stocks = g_conf.Stocks;
+            var stocks = g_conf_stocks.Union(ImportantIndexs).ToList();
             var res = await Request(stocks);
             if (res == null || res.Count == 0)
             {
-                UpdateUI(g_i18n[g_conf.Lang]["ui_getdatafialed"], UIStatus.ProgramError);
+                UpdateUI(i18n[g_conf.Lang]["ui_getdatafialed"], UIStatus.ProgramError);
                 Delay(10000);
                 return;
             }
@@ -469,20 +484,22 @@ public partial class MainWindow : Window
             var hasDownLimit = false;
             foreach (var info in res)
             {
-                var stock = stocks.FirstOrDefault(x => x.Code.Trim().Remove(0, 2) == info.StockCode);
-                if (stock == null)
+                var stock = stocks.FirstOrDefault(x =>
+                {
+                    if (x.Code.IsNullOrWhiteSpace() || x.Code.Length <= 2) { return false; }
+                    return x.Code.Trim().Remove(0, 2) == info.StockCode;
+                });
+                if (stock == null || stock.Code.IsNullOrWhiteSpace())
                 {
                     continue;
                 }
-                var text = StockInfoHandle(ref stock, info);
-                if (g_codeDatas.ContainsKey(stock.Code))
+                if (ImportantIndexs.Any(x => x.Code == stock.Code))
                 {
-                    g_codeDatas[stock.Code] = text;
+                    ImportantIndexs[stock.Code].IndexInfo = $"{info.StockName} {info.CurrentPrice:f2} {info.PriceChangePercent:f2}%";
+                    continue;
                 }
-                else
-                {
-                    g_codeDatas.Add(stock.Code, text);
-                }
+                g_codeDatas[stock.Code] = StockInfoHandle(ref stock, info);
+
                 daymake += stock.DayMake;
                 allmake += stock.AllMake;
                 allcost += stock.Cost;
@@ -496,7 +513,11 @@ public partial class MainWindow : Window
                     hasUpLimit = true;
                 }
             }
-            var allyield = allmake / allcost * 100;// 总收益率
+            var allyield = 0.0;
+            if (allcost != 0.0)
+            {
+                allyield = allmake / allcost * 100;// 总收益率
+            }
             var list = g_codeDatas.Select(x => x.Value);
             var content = string.Join(Environment.NewLine, list);
             foreach (var item in g_conf.ExtendControls)
@@ -509,7 +530,7 @@ public partial class MainWindow : Window
                     }
                     continue;
                 }
-                if (!g_i18n[g_conf.Lang].TryGetValue(item.Key, out var field))
+                if (!i18n[g_conf.Lang].TryGetValue(item.Key, out var field))
                 {
                     continue;
                 }
@@ -522,8 +543,12 @@ public partial class MainWindow : Window
                     "ui_all_cost" => $"{newline}{field} {allcost:f2} ",
                     "ui_all_market_value" => $"{newline}{field} {allmarketvalue:f2} ",
                     "ui_all_yield" => $"{newline}{field} {allyield:f2}% ",
-                    _ => field
+                    _ => ""
                 };
+                if (item.Key.StartsWith(StockIndexPrefix))
+                {
+                    temp = $"{newline}{ImportantIndexs[item.Key]?.IndexInfo} ";
+                }
                 content += temp;
             }
             var status = UIStatus.Normal;
@@ -596,7 +621,7 @@ public partial class MainWindow : Window
             if (response.IsSuccessStatusCode)
             {
                 var content = response.Content;
-                var info = new StockInfo(content);
+                var info = StockInfo.Get(content);
                 return info;
             }
             else
@@ -616,7 +641,7 @@ public partial class MainWindow : Window
     {
         try
         {
-            var codes = string.Join(",", scs.Select(x => x.Code));
+            var codes = string.Join(",", scs.Where(x => x.Code.IsNullOrWhiteSpace() == false).Select(x => x.Code));
             var request = new RestRequest();
             request.AddQueryParameter("q", codes);
             var response = await g_client.GetAsync(request);
@@ -634,7 +659,7 @@ public partial class MainWindow : Window
                     {
                         continue;
                     }
-                    var stock = new StockInfo(content.Trim());
+                    var stock = StockInfo.Get(content.Trim());
                     if (stock != null)
                     {
                         list.Add(stock);
@@ -666,6 +691,8 @@ public partial class MainWindow : Window
             Opacity = Opacity,
             ShowInTaskbar = ShowInTaskbar,
         };
+        g_configWindow.PreviewMouseWheel += (_, e) => OnPreviewMouseWheel(e);
+        g_configWindow.KeyDown += OnKeyDown;
         if (g_configWindow.Visibility == Visibility.Visible)
         {
             g_configWindow.Hide();
@@ -674,6 +701,7 @@ public partial class MainWindow : Window
         {
             g_configWindow.Show();
         }
+        Focus();
     }
 
     private void MenuItem_Click(object sender, RoutedEventArgs e)
@@ -707,7 +735,7 @@ public partial class MainWindow : Window
                 MakeConfigWindow();
                 break;
             case "menu_conf_file":
-                var fullPath = Path.Combine(Utils.UserDataPath, "config.json");
+                var fullPath = Path.Combine(UserDataPath, "config.json");
                 Process.Start(fullPath);
                 break;
             case "menu_show_in_taskbar":
@@ -720,6 +748,7 @@ public partial class MainWindow : Window
                 g_conf.DataRoll = !g_conf.DataRoll;
                 menu_data_roll.IsChecked = g_conf.DataRoll;
                 DataUpdate();
+                BorderTwinkle(g_conf.DataRoll);
                 break;
             case "menu_lang":
                 g_conf.Lang = g_conf.Lang == "cn" ? "en" : "cn";
@@ -736,17 +765,17 @@ public partial class MainWindow : Window
             case "menu_check_update":
                 var startInfo = new ProcessStartInfo()
                 {
-                    FileName = Utils.UpdaterPath,
+                    FileName = UpdaterPath,
                     Arguments = $"{App.UpdateMask}" +
                     $" {App.ProductVersion}" +
                     $" {g_conf.CheckUpdateUrl}" +
                     $" {Path.Combine(AppDomain.CurrentDomain.BaseDirectory, App.ProductFileName)}" +
-                    $" {Utils.UpdaterIcoPath}",
+                    $" {UpdaterIcoPath}",
                 };
                 Process.Start(startInfo);
                 break;
             default:
-                MessageBox.Show(this, "Nothing happened...", g_i18n[g_conf.Lang]["ui_title_tip"]);
+                MessageBox.Show(this, "Nothing happened...", i18n[g_conf.Lang]["ui_title_tip"]);
                 break;
         }
     }

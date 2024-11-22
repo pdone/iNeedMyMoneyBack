@@ -1,8 +1,8 @@
-﻿using System.Collections.Generic;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using static iNeedMyMoneyBack.Utils;
 
 namespace iNeedMyMoneyBack;
 
@@ -15,14 +15,14 @@ public partial class ConfigWindow : Window
     public static readonly SolidColorBrush DarkGray = new(Color.FromRgb(66, 66, 66));// 深灰
 
     private readonly Config _conf;
-    private readonly Dictionary<string, Dictionary<string, string>> _i18n;
+    private readonly StockConfigArray _stocks;
     private readonly MainWindow _mainWindow;
     public ConfigWindow(MainWindow mainWindow)
     {
         InitializeComponent();
         _mainWindow = mainWindow;
         _conf = MainWindow.g_conf;
-        _i18n = MainWindow.g_i18n;
+        _stocks = MainWindow.g_conf_stocks;
         InitUI();
     }
 
@@ -37,9 +37,9 @@ public partial class ConfigWindow : Window
             _conf.ConfigWindowWidth = Width;
             _conf.ConfigWindowHeight = Height;
         };
-        MouseDown += (_, __) => Utils.DragWindow(this);
+        MouseDown += (_, __) => DragWindow(this);
         // 界面数据
-        dataGrid.ItemsSource = _conf.Stocks;
+        dataGrid.ItemsSource = _stocks;
         foreach (var kvp in _conf.FieldControls)
         {
             var cbx = CreateCheckBox(kvp.Key, kvp.Value);
@@ -48,9 +48,17 @@ public partial class ConfigWindow : Window
         foreach (var item in _conf.ExtendControls)
         {
             var cbxNewline = CreateCheckBox(item.GetNewLineKey(), item.NewLine);
-            ExtendControls.Children.Add(cbxNewline);
             var cbx = CreateCheckBox(item.Key, item.Visable);
-            ExtendControls.Children.Add(cbx);
+            if (item.Key.StartsWith(StockIndexPrefix))// 指数
+            {
+                StockIndexControls.Children.Add(cbxNewline);
+                StockIndexControls.Children.Add(cbx);
+            }
+            else
+            {
+                ExtendControls.Children.Add(cbxNewline);
+                ExtendControls.Children.Add(cbx);
+            }
         }
         // 初始化语言
         InitLang();
@@ -73,30 +81,44 @@ public partial class ConfigWindow : Window
 
     public void InitLang()
     {
-        btn_close.Content = _i18n[_conf.Lang][btn_close.Name];
-        dataGrid.Columns[0].Header = _i18n[_conf.Lang]["col_code"];
-        dataGrid.Columns[1].Header = _i18n[_conf.Lang]["col_name"];
-        dataGrid.Columns[2].Header = _i18n[_conf.Lang]["col_nickname"];
-        dataGrid.Columns[3].Header = _i18n[_conf.Lang]["col_buyprice"];
-        dataGrid.Columns[4].Header = _i18n[_conf.Lang]["col_buycount"];
+        btn_close.Content = i18n[_conf.Lang][btn_close.Name];
+        dataGrid.Columns[0].Header = i18n[_conf.Lang]["col_code"];
+        dataGrid.Columns[1].Header = i18n[_conf.Lang]["col_name"];
+        dataGrid.Columns[2].Header = i18n[_conf.Lang]["col_nickname"];
+        dataGrid.Columns[3].Header = i18n[_conf.Lang]["col_buyprice"];
+        dataGrid.Columns[4].Header = i18n[_conf.Lang]["col_buycount"];
         foreach (var it in FieldControls.Children)
         {
             if (it is CheckBox cbx)
             {
-                cbx.Content = _i18n[_conf.Lang][cbx.Name];
+                cbx.Content = i18n[_conf.Lang][cbx.Name];
             }
         }
         foreach (var it in ExtendControls.Children)
         {
             if (it is CheckBox cbx)
             {
-                if (cbx.Name.EndsWith(ExtendControlObj.NewlineSuffix))
+                if (cbx.Name.EndsWith(NewlineSuffix))
                 {
-                    cbx.Content = _i18n[_conf.Lang][ExtendControlObj.NewlineSuffix];
+                    cbx.Content = i18n[_conf.Lang][NewlineSuffix];
                 }
                 else
                 {
-                    cbx.Content = _i18n[_conf.Lang][cbx.Name];
+                    cbx.Content = i18n[_conf.Lang][cbx.Name];
+                }
+            }
+        }
+        foreach (var it in StockIndexControls.Children)
+        {
+            if (it is CheckBox cbx)
+            {
+                if (cbx.Name.EndsWith(NewlineSuffix))
+                {
+                    cbx.Content = i18n[_conf.Lang][NewlineSuffix];
+                }
+                else
+                {
+                    cbx.Content = i18n[_conf.Lang][cbx.Name];
                 }
             }
         }

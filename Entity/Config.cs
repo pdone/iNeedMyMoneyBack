@@ -1,4 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 
 namespace iNeedMyMoneyBack;
 
@@ -30,50 +33,152 @@ public class StockConfig
         BuyPrice = buyPrice;
         BuyCount = buyCount;
     }
+    /// <summary>
+    /// 代码
+    /// </summary>
     public string Code
     {
         get; set;
     }
+    /// <summary>
+    /// 名称
+    /// </summary>
     public string Name
     {
         get; set;
     }
+    /// <summary>
+    /// 别名
+    /// </summary>
     public string NickName
     {
         get; set;
     }
+    /// <summary>
+    /// 买入单价
+    /// </summary>
     public double BuyPrice
     {
         get; set;
     }
+    /// <summary>
+    /// 买入数量
+    /// </summary>
     public int BuyCount
     {
         get; set;
     }
     public string DiaplayName => string.IsNullOrWhiteSpace(NickName) ? Name : NickName;
-
+    /// <summary>
+    /// 日盈
+    /// </summary>
     public double DayMake
     {
         get; set;
     }
+    /// <summary>
+    /// 总盈
+    /// </summary>
     public double AllMake
     {
         get; set;
     }
-
+    /// <summary>
+    /// 成本
+    /// </summary>
     public double Cost
     {
         get; set;
     }
-
+    /// <summary>
+    /// 市值
+    /// </summary>
     public double MarketValue
     {
         get; set;
     }
-
+    /// <summary>
+    /// 收益率
+    /// </summary>
     public double Yield
     {
         get; set;
+    }
+    /// <summary>
+    /// 指数专用字段
+    /// </summary>
+    public string IndexInfo
+    {
+        get; set;
+    }
+
+    public override bool Equals(object obj)
+    {
+        return obj is StockConfig other && other.Code == Code;
+    }
+
+    public override int GetHashCode()
+    {
+        return Code == null ? Guid.NewGuid().GetHashCode() : Code.GetHashCode();
+    }
+}
+
+public class StockConfigArray : List<StockConfig>
+{
+    public StockConfig this[string code]
+    {
+        get
+        {
+            if (code.StartsWith(Utils.StockIndexPrefix))
+            {
+                return this.FirstOrDefault(x => x.Code == code.Remove(0, Utils.StockIndexPrefix.Length));
+            }
+            return this.FirstOrDefault(x => x.Code == code);
+        }
+    }
+
+    /// <summary>
+    /// 加载股票数据
+    /// </summary>
+    /// <returns></returns>
+    public static StockConfigArray Load()
+    {
+        var conf = new StockConfigArray();
+        try
+        {
+            var fullPath = Path.Combine(Utils.UserDataPath, "stocks.json");
+            Directory.CreateDirectory(Utils.UserDataPath);
+            if (!File.Exists(fullPath))
+            {
+                File.WriteAllText(fullPath, conf.ToStr());
+            }
+            var reader = File.OpenText(fullPath);
+            conf = reader.ReadToEnd().ToObj<StockConfigArray>();
+            reader.Close();
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex);
+        }
+        return conf;
+    }
+    /// <summary>
+    /// 保存股票数据
+    /// </summary>
+    /// <param name="conf"></param>
+    public void Save()
+    {
+        try
+        {
+            var fullPath = Path.Combine(Utils.UserDataPath, "stocks.json");
+            Directory.CreateDirectory(Utils.UserDataPath);
+            RemoveAll(x => x.Code.IsNullOrWhiteSpace());
+            File.WriteAllText(fullPath, this.ToStr());
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex);
+        }
     }
 }
 
@@ -120,17 +225,36 @@ public class Config
     /// </summary>
     public bool DataRoll { get; set; } = true;
     /// <summary>
-    /// 透明度
+    /// 不透明度
     /// </summary>
     public double Opacity { get; set; } = 0.8;
+    /// <summary>
+    /// 主窗口左上角X坐标
+    /// </summary>
     public double Left { get; set; } = 200;
+    /// <summary>
+    /// 主窗口左上角Y坐标
+    /// </summary>
     public double Top { get; set; } = 200;
+    /// <summary>
+    /// 主窗口宽度
+    /// </summary>
     public double Width { get; set; } = 180;
+    /// <summary>
+    /// 主窗口高度
+    /// </summary>
     public double Height { get; set; } = 26;
+    /// <summary>
+    /// 配置窗口宽度
+    /// </summary>
     public double ConfigWindowWidth { get; set; } = 200;
+    /// <summary>
+    /// 配置窗口高度
+    /// </summary>
     public double ConfigWindowHeight { get; set; } = 165;
-    public List<StockConfig> Stocks { get; set; } = [new StockConfig("sh000001", "上证指数")];
-
+    /// <summary>
+    /// 字段显示控制
+    /// </summary>
     public Dictionary<string, bool> FieldControls
     {
         get; set;
@@ -149,24 +273,77 @@ public class Config
         {"ui_lowest_highest",true},
         {"ui_limitup_limitdown",true},
     };
+
+    /// <summary>
+    /// 扩展字段显示控制
+    /// </summary>
     public List<ExtendControlObj> ExtendControls
     {
         get; set;
     } =
     [
+        // 字段说明
         new ExtendControlObj("ui_fieldname"),
+        // 各大指数
+        new ExtendControlObj("ui_index_sh000001"),
+        new ExtendControlObj("ui_index_sz399001"),
+        new ExtendControlObj("ui_index_sz399006"),
+        new ExtendControlObj("ui_index_sz399300"),
+        new ExtendControlObj("ui_index_bj899050"),
+        // 个人数据
         new ExtendControlObj("ui_all_stock_day_make"),
         new ExtendControlObj("ui_all_stock_all_make"),
         new ExtendControlObj("ui_all_cost"),
         new ExtendControlObj("ui_all_market_value"),
         new ExtendControlObj("ui_all_yield"),
     ];
+
+    /// <summary>
+    /// 获取用户配置
+    /// </summary>
+    /// <returns></returns>
+    public static Config Load()
+    {
+        var conf = new Config();
+        try
+        {
+            var fullPath = Path.Combine(Utils.UserDataPath, "config.json");
+            Directory.CreateDirectory(Utils.UserDataPath);
+            if (!File.Exists(fullPath))
+            {
+                File.WriteAllText(fullPath, conf.ToStr());
+            }
+            var reader = File.OpenText(fullPath);
+            conf = reader.ReadToEnd().ToObj<Config>();
+            reader.Close();
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex);
+        }
+        return conf;
+    }
+    /// <summary>
+    /// 写入用户配置
+    /// </summary>
+    public void Save()
+    {
+        try
+        {
+            var fullPath = Path.Combine(Utils.UserDataPath, "config.json");
+            Directory.CreateDirectory(Utils.UserDataPath);
+            File.WriteAllText(fullPath, this.ToStr());
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex);
+        }
+    }
 }
 
 public class ExtendControlObj(string key)
 {
-    public static string NewlineSuffix => "_newline";
-    public string GetNewLineKey() => Key + NewlineSuffix;
+    public string GetNewLineKey() => Key + Utils.NewlineSuffix;
 
     public string Key { get; set; } = key;
     public bool Visable { get; set; } = true;
