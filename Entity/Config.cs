@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.Json.Serialization;
 
 namespace iNeedMyMoneyBack;
 
@@ -107,6 +108,7 @@ public class StockConfig
     /// <summary>
     /// 指数专用字段
     /// </summary>
+    [JsonIgnore]
     public string IndexInfo
     {
         get; set;
@@ -200,6 +202,10 @@ public class Config
     /// UA
     /// </summary>
     public string UserAgent { get; set; } = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 Edg/126.0.0.0";
+    /// <summary>
+    /// 隐藏边框
+    /// </summary>
+    public bool HideBorder { get; set; } = false;
     /// <summary>
     /// 暗色模式
     /// </summary>

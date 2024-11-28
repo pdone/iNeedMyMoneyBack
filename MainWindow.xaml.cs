@@ -118,6 +118,8 @@ public partial class MainWindow : Window
         menu_show_in_taskbar.IsChecked = g_conf.ShowInTaskbar;
         menu_data_roll.IsChecked = g_conf.DataRoll;
         menu_debug_mode.IsChecked = g_conf.Debug;
+        menu_hide_border.IsChecked = g_conf.HideBorder;
+        Resources["BorderThickness"] = new Thickness(g_conf.HideBorder ? 0 : 1);
 
         // 界面事件绑定
         PreviewMouseDown += (_, __) => DragWindow(this);
@@ -188,16 +190,18 @@ public partial class MainWindow : Window
     {
         menu_ver.Header = $"{i18n[g_conf.Lang][menu_ver.Name]} {App.ProductVersion}(_V)";
         SetMenuItemHeader(menu_exit, "X");
+        SetMenuItemHeader(menu_hide_border, "H");
         SetMenuItemHeader(menu_dark, "N");
         SetMenuItemHeader(menu_topmost, "T");
         SetMenuItemHeader(menu_conf, "C");
         SetMenuItemHeader(menu_conf_file, "F");
+        SetMenuItemHeader(menu_data_dir, "D");
         SetMenuItemHeader(menu_show_in_taskbar, "B");
         SetMenuItemHeader(menu_data_roll, "R");
         SetMenuItemHeader(menu_lang, "L");
         SetMenuItemHeader(menu_ui, "U");
         SetMenuItemHeader(menu_check_update, "U");
-        SetMenuItemHeader(menu_debug_mode, "D");
+        SetMenuItemHeader(menu_debug_mode);
         menu_opacity.Header = string.Format(i18n[g_conf.Lang]["menu_opacity"], (Opacity * 100).ToString("f0"));
         menu_opacity.InputGestureText = i18n[g_conf.Lang]["menu_opacity_igt"];
     }
@@ -266,41 +270,24 @@ public partial class MainWindow : Window
     {
         if (Keyboard.Modifiers == ModifierKeys.Control)
         {
-            string menuItemName;
-            switch (e.Key)
+            var menuItemName = e.Key switch
             {
-                case Key.U:
-                    menuItemName = menu_check_update.Name;
-                    break;
-                case Key.D:
-                    menuItemName = menu_debug_mode.Name;
-                    break;
-                case Key.C:
-                    menuItemName = menu_conf.Name;
-                    break;
-                case Key.F:
-                    menuItemName = menu_conf_file.Name;
-                    break;
-                case Key.X:
-                    menuItemName = menu_exit.Name;
-                    break;
-                case Key.N:
-                    menuItemName = menu_dark.Name;
-                    break;
-                case Key.R:
-                    menuItemName = menu_data_roll.Name;
-                    break;
-                case Key.T:
-                    menuItemName = menu_topmost.Name;
-                    break;
-                case Key.B:
-                    menuItemName = menu_show_in_taskbar.Name;
-                    break;
-                case Key.L:
-                    menuItemName = menu_lang.Name;
-                    break;
-                default:
-                    return;
+                Key.B => menu_show_in_taskbar.Name,
+                Key.C => menu_conf.Name,
+                Key.D => menu_data_dir.Name,
+                Key.F => menu_conf_file.Name,
+                Key.H => menu_hide_border.Name,
+                Key.U => menu_check_update.Name,
+                Key.L => menu_lang.Name,
+                Key.N => menu_dark.Name,
+                Key.R => menu_data_roll.Name,
+                Key.T => menu_topmost.Name,
+                Key.X => menu_exit.Name,
+                _ => ""
+            };
+            if (menuItemName.IsNullOrWhiteSpace())
+            {
+                return;
             }
             OnMenuItemClick(menuItemName);
         }
@@ -495,7 +482,7 @@ public partial class MainWindow : Window
                 }
                 if (ImportantIndexs.Any(x => x.Code == stock.Code))
                 {
-                    ImportantIndexs[stock.Code].IndexInfo = $"{info.StockName} {info.CurrentPrice:f2} {info.PriceChangePercent:f2}%";
+                    ImportantIndexs[stock.Code].IndexInfo = $"{i18n[g_conf.Lang][StockIndexPrefix + stock.Code]} {info.CurrentPrice:f2} {info.PriceChangePercent:f2}%";
                     continue;
                 }
                 g_codeDatas[stock.Code] = StockInfoHandle(ref stock, info);
@@ -719,6 +706,12 @@ public partial class MainWindow : Window
             case "menu_exit":
                 Close();
                 break;
+            case "menu_hide_border":
+                g_conf.HideBorder = !g_conf.HideBorder;
+                menu_hide_border.IsChecked = g_conf.HideBorder;
+                Resources["BorderThickness"] = new Thickness(g_conf.HideBorder ? 0 : 1);
+                g_configWindow?.InitBorderThickess(g_conf.HideBorder);
+                break;
             case "menu_dark":
                 g_conf.DarkMode = !g_conf.DarkMode;
                 menu_dark.IsChecked = g_conf.DarkMode;
@@ -737,6 +730,9 @@ public partial class MainWindow : Window
             case "menu_conf_file":
                 var fullPath = Path.Combine(UserDataPath, "config.json");
                 Process.Start(fullPath);
+                break;
+            case "menu_data_dir":
+                Process.Start(UserDataPath);
                 break;
             case "menu_show_in_taskbar":
                 g_conf.ShowInTaskbar = !g_conf.ShowInTaskbar;

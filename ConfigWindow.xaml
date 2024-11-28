@@ -22,6 +22,7 @@
         <SolidColorBrush x:Key="CheckedColor" />
         <SolidColorBrush x:Key="GridBackground" />
         <SolidColorBrush x:Key="GridBorderColor" />
+        <Thickness x:Key="BorderThickness" />
         <Style TargetType="Button">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="Foreground" Value="{DynamicResource TextColor}" />
@@ -31,7 +32,7 @@
                         <Border x:Name="border"
                                 Background="{TemplateBinding Background}"
                                 BorderBrush="#000"
-                                BorderThickness="1"
+                                BorderThickness="{DynamicResource BorderThickness}"
                                 CornerRadius="8">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
@@ -55,7 +56,7 @@
                                     Padding="4"
                                     Background="Transparent"
                                     BorderBrush="Black"
-                                    BorderThickness="1"
+                                    BorderThickness="{DynamicResource BorderThickness}"
                                     CornerRadius="8">
                                 <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Border>
@@ -80,7 +81,7 @@
     <Grid x:Name="grid" Background="Transparent">
         <Border Name="border"
                 BorderBrush="#000"
-                BorderThickness="1"
+                BorderThickness="{DynamicResource BorderThickness}"
                 CornerRadius="0,10,0,10">
             <StackPanel Margin="0,10,0,30" Orientation="Vertical">
                 <DataGrid x:Name="dataGrid"

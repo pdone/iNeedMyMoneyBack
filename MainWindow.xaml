@@ -23,13 +23,14 @@
         <SolidColorBrush x:Key="SubMenuMask" />
         <SolidColorBrush x:Key="SubMenuBackground" />
         <SolidColorBrush x:Key="HoverBackground" />
+        <Thickness x:Key="BorderThickness" />
         <Style TargetType="ContextMenu">
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ContextMenu">
                         <Border Background="{TemplateBinding Background}"
                                 BorderBrush="#000"
-                                BorderThickness="1">
+                                BorderThickness="{DynamicResource BorderThickness}">
                             <ItemsPresenter />
                         </Border>
                     </ControlTemplate>
@@ -43,7 +44,7 @@
                         <Border x:Name="Border"
                                 Padding="2"
                                 Background="Transparent"
-                                BorderThickness="0">
+                                BorderThickness="{DynamicResource BorderThickness}">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition x:Name="ColIcon"
@@ -94,7 +95,7 @@
                                     <Border x:Name="SubMenuBorder"
                                             Background="{DynamicResource SubMenuBackground}"
                                             BorderBrush="#000"
-                                            BorderThickness="1"
+                                            BorderThickness="{DynamicResource BorderThickness}"
                                             OpacityMask="{DynamicResource SubMenuMask}">
                                         <Grid x:Name="SubMenu" Grid.IsSharedSizeScope="True">
                                             <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle" />
@@ -153,16 +154,18 @@
                 <MenuItem Name="menu_check_update"
                           Click="MenuItem_Click"
                           InputGestureText="Ctrl+U" />
-                <Separator />
+                <Separator Background="{DynamicResource TextColor}" />
                 <MenuItem Name="menu_conf_file"
                           Click="MenuItem_Click"
                           InputGestureText="Ctrl+F" />
+                <MenuItem Name="menu_data_dir"
+                          Click="MenuItem_Click"
+                          InputGestureText="Ctrl+D" />
                 <MenuItem Name="menu_debug_mode"
                           Click="MenuItem_Click"
-                          InputGestureText="Ctrl+D"
                           StaysOpenOnClick="True" />
             </MenuItem>
-            <Separator />
+            <Separator Background="{DynamicResource TextColor}" />
             <MenuItem Name="menu_conf"
                       Click="MenuItem_Click"
                       InputGestureText="Ctrl+C" />
@@ -175,6 +178,10 @@
                 <MenuItem Name="menu_lang"
                           Click="MenuItem_Click"
                           InputGestureText="Ctrl+L"
+                          StaysOpenOnClick="True" />
+                <MenuItem Name="menu_hide_border"
+                          Click="MenuItem_Click"
+                          InputGestureText="Ctrl+H"
                           StaysOpenOnClick="True" />
                 <MenuItem Name="menu_dark"
                           Click="MenuItem_Click"
@@ -189,7 +196,7 @@
                           InputGestureText="Ctrl+B"
                           StaysOpenOnClick="True" />
             </MenuItem>
-            <Separator />
+            <Separator Background="{DynamicResource TextColor}" />
             <MenuItem Name="menu_exit"
                       Click="MenuItem_Click"
                       InputGestureText="Ctrl+X" />
@@ -200,7 +207,7 @@
                 Padding="1"
                 Background="#ddd"
                 BorderBrush="#000"
-                BorderThickness="1"
+                BorderThickness="{DynamicResource BorderThickness}"
                 CornerRadius="0,10,0,10">
             <Label Name="lb"
                    Padding="6,1"

@@ -64,6 +64,7 @@ public partial class ConfigWindow : Window
         InitLang();
         // 初始化颜色
         InitColor();
+        InitBorderThickess(_conf.HideBorder);
     }
 
     public void InitColor()
@@ -77,6 +78,11 @@ public partial class ConfigWindow : Window
             Resources["CheckedColor"] = DarkGray;
             Resources["TextColor"] = LightGray;
         }
+    }
+
+    public void InitBorderThickess(bool hide)
+    {
+        Resources["BorderThickness"] = new Thickness(hide ? 0 : 1);
     }
 
     public void InitLang()
