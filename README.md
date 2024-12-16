@@ -53,7 +53,13 @@
 - 单击后按钮背景变为浅色，即为启用。
 - 程序内置了一些指数，这些指数不允许添加监控。
 
-## FAQ
+## 下载
+
+### GitHub Release
+
+https://github.com/pdone/iNeedMyMoneyBack/releases/latest/download/iNeedMyMoneyBack.exe
+
+## 常见问题
 
 ### 数据来源
 
@@ -75,7 +81,7 @@ https://qt.gtimg.cn/
 
 ### 开放源代码
 
-程序比较简单，没什么值得分享的技术，代码无混淆，需要看代码的朋友可以直接使用 dnSpy 反编译即可。
+程序比较简单，没什么值得分享的技术，代码无混淆，需要看代码的朋友使用 dnSpy 反编译即可。
 
 ## 赞助
 
