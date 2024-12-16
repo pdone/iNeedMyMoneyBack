@@ -31,10 +31,8 @@ public partial class App : Application
     public const string ProductName = "iNeedMyMoneyBack";
     public const string ProductFileName = ProductName + ".exe";
     public const string ProductCompany = "Pdone Technology Ltd.";
-    public const string ProductVersion = "1.0.0";
+    public const string ProductVersion = "1.0";
     public const string Copyright = "Copyright © pdone 2025";
-    public const string UpdateMask = "--update";
-    public const string UpdaterFileName = "FreeUpdater.exe";
 
     protected override void OnExit(ExitEventArgs e)
     {
@@ -58,7 +56,7 @@ public partial class App : Application
                 "Error", MessageBoxButton.YesNo, MessageBoxImage.Error);
             if (dr == MessageBoxResult.Yes)
             {
-                Process.Start("https://github.com/pdone");
+                Process.Start($"https://github.com/pdone/{ProductName}");
             }
         }
     }

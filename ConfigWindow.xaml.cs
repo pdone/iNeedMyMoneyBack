@@ -1,4 +1,5 @@
-﻿using System.Windows;
+﻿using System.Linq;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -6,9 +7,6 @@ using static iNeedMyMoneyBack.Utils;
 
 namespace iNeedMyMoneyBack;
 
-/// <summary>
-/// ConfigWindow.xaml 的交互逻辑
-/// </summary>
 public partial class ConfigWindow : Window
 {
     public static readonly SolidColorBrush LightGray = new(Color.FromRgb(222, 222, 222));// 浅灰
@@ -40,6 +38,8 @@ public partial class ConfigWindow : Window
         MouseDown += (_, __) => DragWindow(this);
         // 界面数据
         dataGrid.ItemsSource = _stocks;
+        dataGrid.RowEditEnding += DataGrid_RowEditEnding;
+
         foreach (var kvp in _conf.FieldControls)
         {
             var cbx = CreateCheckBox(kvp.Key, kvp.Value);
@@ -67,6 +67,39 @@ public partial class ConfigWindow : Window
         InitBorderThickess(_conf.HideBorder);
     }
 
+    private void DataGrid_RowEditEnding(object sender, DataGridRowEditEndingEventArgs e)
+    {
+        if (e.EditAction != DataGridEditAction.Commit)
+        {
+            return;
+        }
+        if (e.Row.Item is not StockConfig curItem)
+        {
+            return;
+        }
+        if (curItem.Code.IsNullOrWhiteSpace())
+        {
+            DataGrid.DeleteCommand.Execute(null, dataGrid);
+            goto DataUpdate;
+        }
+        if (StockConfigArray.ImportantIndexs.Any(x => x.Code == curItem.Code.ToLower()))
+        {
+            MessageBox.Show("股指暂不支持添加监控，可在配置界面启用对应股指选项来查看");
+            DataGrid.DeleteCommand.Execute(null, dataGrid);
+            return;
+        }
+        var startWith = curItem.Code.Substring(0, 2).ToLower();
+        if (startWith != "sh" && startWith != "sz" && startWith != "bj")
+        {
+            MessageBox.Show("代码需要以sh、sz、bj开头，分别代表上海、深圳、北京");
+            DataGrid.DeleteCommand.Execute(null, dataGrid);
+            return;
+        }
+    DataUpdate:
+        MainWindow.g_conf_stocks_with_index = _stocks.Union(StockConfigArray.ImportantIndexs).ToList();
+        _mainWindow.DataUpdate(false);
+    }
+
     public void InitColor()
     {
         dataGrid.Background = MainWindow.color_bg;
@@ -87,6 +120,7 @@ public partial class ConfigWindow : Window
 
     public void InitLang()
     {
+        Title = i18n[_conf.Lang]["ui_title_config"];
         btn_close.Content = i18n[_conf.Lang][btn_close.Name];
         dataGrid.Columns[0].Header = i18n[_conf.Lang]["col_code"];
         dataGrid.Columns[1].Header = i18n[_conf.Lang]["col_name"];

@@ -114,7 +114,7 @@
                         </Style>
                     </DataGrid.RowStyle>
                     <DataGrid.Columns>
-                        <DataGridTextColumn Binding="{Binding Code}" Header="Code" />
+                        <DataGridTextColumn Binding="{Binding Code, UpdateSourceTrigger=PropertyChanged}" Header="Code" />
                         <DataGridTextColumn Binding="{Binding Name}"
                                             Header="Name"
                                             IsReadOnly="True" />

@@ -140,6 +140,18 @@ public class StockConfigArray : List<StockConfig>
     }
 
     /// <summary>
+    /// 重要指数集合
+    /// </summary>
+    public static readonly StockConfigArray ImportantIndexs =
+    [
+        new StockConfig("sh000001"),
+        new StockConfig("sz399001"),
+        new StockConfig("sz399006"),
+        new StockConfig("sz399300"),
+        new StockConfig("bj899050"),
+    ];
+
+    /// <summary>
     /// 加载股票数据
     /// </summary>
     /// <returns></returns>
@@ -191,10 +203,6 @@ public class Config
     /// </summary>
     public bool Debug { get; set; } = false;
     /// <summary>
-    /// 检查更新地址
-    /// </summary>
-    public string CheckUpdateUrl { get; set; } = "http://10.32.216.79/app/update.xml";
-    /// <summary>
     /// 数据接口
     /// </summary>
     public string Api { get; set; } = "http://qt.gtimg.cn";
@@ -209,7 +217,7 @@ public class Config
     /// <summary>
     /// 暗色模式
     /// </summary>
-    public bool DarkMode { get; set; } = false;
+    public bool DarkMode { get; set; } = true;
     /// <summary>
     /// 置顶
     /// </summary>
@@ -229,7 +237,7 @@ public class Config
     /// <summary>
     /// 滚动展示数据
     /// </summary>
-    public bool DataRoll { get; set; } = true;
+    public bool DataRoll { get; set; } = false;
     /// <summary>
     /// 不透明度
     /// </summary>
@@ -268,16 +276,16 @@ public class Config
     {
         {"ui_price",true},
         {"ui_change",true},
-        {"ui_buy_price",true},
-        {"ui_num",true},
-        {"ui_cost",true},
-        {"ui_market_value",true},
-        {"ui_day_make",true},
-        {"ui_all_make",true},
-        {"ui_yield",true},
-        {"ui_yesterday_todayopen",true},
-        {"ui_lowest_highest",true},
-        {"ui_limitup_limitdown",true},
+        {"ui_buy_price",false},
+        {"ui_num",false},
+        {"ui_cost",false},
+        {"ui_market_value",false},
+        {"ui_day_make",false},
+        {"ui_all_make",false},
+        {"ui_yield",false},
+        {"ui_yesterday_todayopen",false},
+        {"ui_lowest_highest",false},
+        {"ui_limitup_limitdown",false},
     };
 
     /// <summary>
@@ -352,6 +360,6 @@ public class ExtendControlObj(string key)
     public string GetNewLineKey() => Key + Utils.NewlineSuffix;
 
     public string Key { get; set; } = key;
-    public bool Visable { get; set; } = true;
-    public bool NewLine { get; set; } = true;
+    public bool Visable { get; set; } = false;
+    public bool NewLine { get; set; } = false;
 }

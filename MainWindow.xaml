@@ -4,11 +4,10 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:local="clr-namespace:iNeedMyMoneyBack"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        x:Name="main"
         Title="iNeedMyMoneyBack"
-        Width="180"
+        Width="225"
         Height="26"
-        MinWidth="180"
+        MinWidth="225"
         MinHeight="26"
         AllowsTransparency="True"
         Background="Transparent"
@@ -18,13 +17,15 @@
         WindowStyle="None"
         mc:Ignorable="d">
     <Window.Resources>
-        <RoutedUICommand x:Key="HotKeyCommand" />
         <SolidColorBrush x:Key="TextColor" />
         <SolidColorBrush x:Key="SubMenuMask" />
         <SolidColorBrush x:Key="SubMenuBackground" />
         <SolidColorBrush x:Key="HoverBackground" />
         <Thickness x:Key="BorderThickness" />
         <Style TargetType="ContextMenu">
+            <Setter Property="Background" Value="{DynamicResource SubMenuBackground}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextColor}" />
+            <Setter Property="Opacity" Value="{DynamicResource MainOpacity}" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ContextMenu">
@@ -47,12 +48,10 @@
                                 BorderThickness="{DynamicResource BorderThickness}">
                             <Grid>
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition x:Name="ColIcon"
-                                                      Width="Auto"
-                                                      SharedSizeGroup="MenuItemIconColumnGroup" />
-                                    <ColumnDefinition Width="Auto" SharedSizeGroup="MenuTextColumnGroup" />
-                                    <ColumnDefinition Width="Auto" SharedSizeGroup="MenuItemIGTColumnGroup" />
-                                    <ColumnDefinition x:Name="ColNext" Width="auto" />
+                                    <ColumnDefinition x:Name="ColIcon" SharedSizeGroup="MenuItemIconColumnGroup" />
+                                    <ColumnDefinition SharedSizeGroup="MenuTextColumnGroup" />
+                                    <ColumnDefinition SharedSizeGroup="MenuItemIGTColumnGroup" />
+                                    <ColumnDefinition x:Name="ColNext" />
                                 </Grid.ColumnDefinitions>
                                 <ContentPresenter x:Name="Icon"
                                                   Grid.Column="0"
@@ -147,9 +146,7 @@
         </Style>
     </Window.Resources>
     <Window.ContextMenu>
-        <ContextMenu Name="menu"
-                     Padding="0"
-                     FontFamily="{StaticResource SecondFont}">
+        <ContextMenu Padding="0" FontFamily="{StaticResource SecondFont}">
             <MenuItem Name="menu_ver">
                 <MenuItem Name="menu_check_update"
                           Click="MenuItem_Click"

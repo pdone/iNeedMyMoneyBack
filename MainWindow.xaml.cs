@@ -8,50 +8,55 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using RestSharp;
 using static iNeedMyMoneyBack.Utils;
 
 namespace iNeedMyMoneyBack;
 
-/// <summary>
-/// MainWindow.xaml 的交互逻辑
-/// </summary>
 public partial class MainWindow : Window
 {
-    public static Config g_conf = new();
-    public static StockConfigArray g_conf_stocks = [];
+    #region 公开成员变量
+    public static Config g_conf = new();// 配置数据
+    public static StockConfigArray g_conf_stocks = [];// 配置的股票集合
+    public static List<StockConfig> g_conf_stocks_with_index = [];// 配置的股票集合 与 重要指数集合 的并集
+    public static SolidColorBrush color_bg;// 背景色画刷
+    public static SolidColorBrush color_fg;// 前景色画刷
+    #endregion
+
+    #region 私有成员变量
+    private static StockInfo g_last_res = null;// 上一次请求响应
+    private static List<StockInfo> g_last_res_set = [];// 上一次请求响应
     private RestClient g_client;
     private static int g_codeIndex = 0;
-    private static readonly Dictionary<string, string> g_codeDatas = [];
     private readonly BackgroundWorker g_worker = new()
     {
         WorkerSupportsCancellation = true,
     };
-    private ConfigWindow g_configWindow;
-    /// <summary>
-    /// 重要指数
-    /// </summary>
-    public readonly StockConfigArray ImportantIndexs =
-    [
-        new StockConfig("sh000001"),
-        new StockConfig("sz399001"),
-        new StockConfig("sz399006"),
-        new StockConfig("sz399300"),
-        new StockConfig("bj899050"),
-    ];
+    private ConfigWindow g_configWindow;// 配置窗口
+    private bool ConfigWindowShow = false;
+    private Pdone.Updater.UI.Main g_updater;// 更新程序
+    private readonly ImageSource TaskbarIcon = new BitmapImage(new Uri($"pack://application:,,,/iNeedMyMoneyBack;component/Resources/App.ico", UriKind.Absolute));
+    private readonly ImageSource PageImage = new BitmapImage(new Uri($"pack://application:,,,/iNeedMyMoneyBack;component/Resources/App.png", UriKind.Absolute));
+
     /// <summary>
     /// 增加菜单不透明度 避免与主界面重叠时显示不清除
     /// </summary>
-    private const double MenuOpacityAdded = 0.2;
+    private const double MenuOpacityAdded = 0.3;
     /// <summary>
     /// 数值补齐长度
     /// </summary>
     private const int PricePad = 5;
     /// <summary>
+    /// 告警值 涨跌幅的绝对值大于此值时 界面高亮提示 单位 %
+    /// </summary>
+    private const int AlertValue = 9;
+    /// <summary>
     /// 界面状态
     /// </summary>
-    public enum UIStatus
+    private enum UIStatus
     {
         Normal,
         UpLimit,
@@ -61,7 +66,7 @@ public partial class MainWindow : Window
     /// <summary>
     /// 常用符号
     /// </summary>
-    public struct Symbols
+    private struct Symbols
     {
         public const string ArrowRight = "→";
         public const string ArrowLeft = "←";
@@ -70,13 +75,14 @@ public partial class MainWindow : Window
         public const string ArrowUpDown = "↕";
         public const string Wave = "↗";
     }
+    #endregion
 
+    #region 初始化界面
     public MainWindow()
     {
         InitializeComponent();
         InitGlobalData();
         InitUI();
-        LodaUpdater();
     }
 
     /// <summary>
@@ -89,9 +95,11 @@ public partial class MainWindow : Window
 
         if (g_conf != null && g_conf_stocks.Count == 0)
         {
-            g_conf_stocks.Add(new StockConfig("sh000001"));
-            g_conf_stocks.Add(new StockConfig("sz399001"));
+            g_conf_stocks.Add(new StockConfig("sh600519"));
+            g_conf_stocks.Add(new StockConfig("sz300750"));
         }
+
+        g_conf_stocks_with_index = g_conf_stocks.Union(StockConfigArray.ImportantIndexs).ToList();
 
         if (g_client == null)
         {
@@ -99,6 +107,7 @@ public partial class MainWindow : Window
             g_client.AddDefaultHeader("User-Agent", g_conf.UserAgent);
         }
     }
+
     /// <summary>
     /// 初始化界面
     /// </summary>
@@ -112,25 +121,27 @@ public partial class MainWindow : Window
         Opacity = g_conf.Opacity;
         Topmost = g_conf.Topmost;
         ShowInTaskbar = g_conf.ShowInTaskbar;
-        menu.Opacity = Math.Min(Opacity + MenuOpacityAdded, 1);
         menu_dark.IsChecked = g_conf.DarkMode;
         menu_topmost.IsChecked = g_conf.Topmost;
         menu_show_in_taskbar.IsChecked = g_conf.ShowInTaskbar;
         menu_data_roll.IsChecked = g_conf.DataRoll;
         menu_debug_mode.IsChecked = g_conf.Debug;
         menu_hide_border.IsChecked = g_conf.HideBorder;
+
         Resources["BorderThickness"] = new Thickness(g_conf.HideBorder ? 0 : 1);
+        Resources["MainOpacity"] = Math.Min(Opacity + MenuOpacityAdded, 1);
 
         // 界面事件绑定
         PreviewMouseDown += (_, __) => DragWindow(this);
-        PreviewMouseWheel += (_, e) => OnPreviewMouseWheel(e);
+        PreviewMouseWheel += (_, e) => OnPreviewMouseWheel(_, e);
+        ContextMenu.PreviewMouseWheel += (_, e) => OnPreviewMouseWheel(_, e, false);
+        ContextMenu.PreviewKeyDown += OnKeyDown;
         PreviewKeyDown += OnKeyDown;
-        Closing += MainWindow_Closing;
-        menu.PreviewMouseWheel += (_, e) => OnPreviewMouseWheel(e);
-        menu.KeyDown += OnKeyDown;
-        menu_opacity.PreviewMouseWheel += (_, e) => OnPreviewMouseWheel(e, false);
+        Closed += (_, __) => BeforeExit();
         g_worker.DoWork += DoWork;
         g_worker.RunWorkerAsync();
+
+        //myNotifyIcon.IconSource = TaskbarIcon;
 
         // 依赖属性事件绑定
         DependencyPropertyDescriptor
@@ -150,7 +161,7 @@ public partial class MainWindow : Window
     /// <summary>
     /// 初始化配色
     /// </summary>
-    private void InitColor()
+    public void InitColor()
     {
         if (g_conf.DarkMode)
         {
@@ -165,15 +176,13 @@ public partial class MainWindow : Window
 
         border.Background = color_bg;
         lb.Foreground = color_fg;
-        menu.Background = color_bg;
-        menu.Foreground = color_fg;
         Resources["TextColor"] = color_fg;
         Resources["SubMenuBackground"] = color_bg;
 
         var tempSubMenuMask = new SolidColorBrush
         {
             Color = color_bg.Color,
-            Opacity = menu.Opacity
+            Opacity = (double)Resources["MainOpacity"]
         };
         Resources["SubMenuMask"] = tempSubMenuMask;
         var tempHoverBg = new SolidColorBrush
@@ -205,13 +214,13 @@ public partial class MainWindow : Window
         menu_opacity.Header = string.Format(i18n[g_conf.Lang]["menu_opacity"], (Opacity * 100).ToString("f0"));
         menu_opacity.InputGestureText = i18n[g_conf.Lang]["menu_opacity_igt"];
     }
+    #endregion
 
+    #region 界面事件
     /// <summary>
-    /// 主窗口关闭事件
+    /// 退出前保存数据
     /// </summary>
-    /// <param name="sender"></param>
-    /// <param name="e"></param>
-    private void MainWindow_Closing(object sender, CancelEventArgs e)
+    private void BeforeExit()
     {
         g_worker.CancelAsync();
         g_conf.Left = Left;
@@ -221,6 +230,10 @@ public partial class MainWindow : Window
         g_conf.Opacity = Opacity;
         g_conf.Save();
         g_conf_stocks.Save();
+
+        var hwnd = new WindowInteropHelper(this).Handle;
+        // 注销热键
+        UnregisterHotKey(hwnd, HotKeys.MainShow);
     }
 
     /// <summary>
@@ -228,7 +241,12 @@ public partial class MainWindow : Window
     /// </summary>
     /// <param name="e"></param>
     /// <param name="needPressCtrl"></param>
-    private void OnPreviewMouseWheel(MouseWheelEventArgs e, bool needPressCtrl = true)
+    private void OnPreviewMouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        OnPreviewMouseWheel(sender, e, true);
+    }
+
+    private void OnPreviewMouseWheel(object sender, MouseWheelEventArgs e, bool needPressCtrl = true)
     {
         if (needPressCtrl)
         {
@@ -251,12 +269,12 @@ public partial class MainWindow : Window
             g_configWindow.Opacity = Opacity;
         }
         menu_opacity.Header = string.Format(i18n[g_conf.Lang]["menu_opacity"], (Opacity * 100).ToString("f0"));
-
-        menu.Opacity = Math.Min(Opacity + MenuOpacityAdded, 1);
+        var tempOpacity = Math.Min(Opacity + MenuOpacityAdded, 1);
+        Resources["MainOpacity"] = tempOpacity;
         var tempSubMenuMask = new SolidColorBrush
         {
             Color = color_bg.Color,
-            Opacity = menu.Opacity
+            Opacity = tempOpacity
         };
         Resources["SubMenuMask"] = tempSubMenuMask;
     }
@@ -313,19 +331,22 @@ public partial class MainWindow : Window
     /// <param name="menuItem"></param>
     private void SetMenuItemHeader(MenuItem menuItem, string shortcuts = null)
     {
-        if (i18n.ContainsKey(g_conf.Lang) && i18n[g_conf.Lang].ContainsKey(menuItem.Name))
+        var tag = menuItem.Name;
+        if (i18n.ContainsKey(g_conf.Lang) && i18n[g_conf.Lang].ContainsKey(tag))
         {
             if (shortcuts.IsNullOrWhiteSpace())
             {
-                menuItem.Header = i18n[g_conf.Lang][menuItem.Name];
+                menuItem.Header = i18n[g_conf.Lang][tag];
             }
             else
             {
-                menuItem.Header = i18n[g_conf.Lang][menuItem.Name] + $"(_{shortcuts})";
+                menuItem.Header = i18n[g_conf.Lang][tag] + $"(_{shortcuts})";
             }
         }
     }
+    #endregion
 
+    #region 整理数据
     private string GetFieldName(string newline)
     {
         var fieldName = $"{newline}{i18n[g_conf.Lang]["ui_name"]}";
@@ -399,17 +420,24 @@ public partial class MainWindow : Window
     {
         while (true)
         {
-            DataUpdate(true);
+            DataUpdate(false);
             Delay();// 请求间隔最低 2s
         }
     }
+    #endregion
 
-    public async void DataUpdate(bool delay = false)
+    #region 更新界面
+    /// <summary>
+    /// 更新界面显示内容
+    /// </summary>
+    /// <param name="useCache">是否使用上一次请求响应数据</param>
+    public async void DataUpdate(bool useCache = true)
     {
-        if (!IsTradingTime() && !g_conf.Debug)// 非交易时间
+        var isTradingTime = IsTradingTime();
+        if (!isTradingTime && !g_conf.Debug)// 非交易时间
         {
             UpdateUI(i18n[g_conf.Lang]["ui_nontrading"]);
-            if (delay)
+            if (!useCache)// 不使用缓存时 计时器定时请求 在非交易时间时需要延迟30秒
             {
                 Delay(30000);
             }
@@ -426,7 +454,7 @@ public partial class MainWindow : Window
             }
 
             var stock = g_conf_stocks.ElementAt(g_codeIndex);
-            var res = await Request(stock);
+            var res = await Request(stock, useCache);
             if (res == null)
             {
                 UpdateUI(i18n[g_conf.Lang]["ui_getdatafialed"], UIStatus.ProgramError);
@@ -434,18 +462,16 @@ public partial class MainWindow : Window
                 return;
             }
             var text = StockInfoHandle(ref stock, res);
-            if (res.CurrentPrice >= res.PriceLimitUp)
+            var status = UIStatus.Normal;
+            if (res.PriceChangePercent >= AlertValue)
             {
-                UpdateUI(text, UIStatus.UpLimit);
+                status = UIStatus.UpLimit;
             }
-            else if (res.CurrentPrice <= res.PriceLimitDown)
+            else if (res.CurrentPrice <= -AlertValue)
             {
-                UpdateUI(text, UIStatus.DownLimit);
+                status = UIStatus.DownLimit;
             }
-            else
-            {
-                UpdateUI(text);
-            }
+            UpdateUI(text, status);
 
             g_codeIndex++;
             if (g_conf_stocks.Count < g_codeIndex + 1)
@@ -455,8 +481,7 @@ public partial class MainWindow : Window
         }
         else// 多行数据同步展示
         {
-            var stocks = g_conf_stocks.Union(ImportantIndexs).ToList();
-            var res = await Request(stocks);
+            var res = await Request(g_conf_stocks_with_index, useCache);
             if (res == null || res.Count == 0)
             {
                 UpdateUI(i18n[g_conf.Lang]["ui_getdatafialed"], UIStatus.ProgramError);
@@ -469,33 +494,36 @@ public partial class MainWindow : Window
             var allmarketvalue = 0.0;// 总市值
             var hasUpLimit = false;
             var hasDownLimit = false;
+            var content = string.Empty;// 整理后的界面文本
             foreach (var info in res)
             {
-                var stock = stocks.FirstOrDefault(x =>
+                var stock = g_conf_stocks_with_index.FirstOrDefault(x =>
                 {
-                    if (x.Code.IsNullOrWhiteSpace() || x.Code.Length <= 2) { return false; }
+                    if (x.Code.IsNullOrWhiteSpace() || x.Code.Length < 8) { return false; }
                     return x.Code.Trim().Remove(0, 2) == info.StockCode;
                 });
                 if (stock == null || stock.Code.IsNullOrWhiteSpace())
                 {
                     continue;
                 }
-                if (ImportantIndexs.Any(x => x.Code == stock.Code))
+                if (StockConfigArray.ImportantIndexs.Any(x => x.Code == stock.Code))
                 {
-                    ImportantIndexs[stock.Code].IndexInfo = $"{i18n[g_conf.Lang][StockIndexPrefix + stock.Code]} {info.CurrentPrice:f2} {info.PriceChangePercent:f2}%";
+                    StockConfigArray.ImportantIndexs[stock.Code].IndexInfo = $"{i18n[g_conf.Lang][StockIndexPrefix + stock.Code]} {info.CurrentPrice:f2} {info.PriceChangePercent:f2}%";
+                    //if (!g_conf_stocks.Any(y => y.Code == stock.Code))
+                    //{
                     continue;
+                    //}
                 }
-                g_codeDatas[stock.Code] = StockInfoHandle(ref stock, info);
-
+                content += StockInfoHandle(ref stock, info) + Environment.NewLine;
                 daymake += stock.DayMake;
                 allmake += stock.AllMake;
                 allcost += stock.Cost;
                 allmarketvalue += stock.Cost + stock.AllMake;
-                if (info.PriceChangePercent < -9)
+                if (info.PriceChangePercent < -AlertValue)
                 {
                     hasDownLimit = true;
                 }
-                else if (info.PriceChangePercent > 9)
+                else if (info.PriceChangePercent > AlertValue)
                 {
                     hasUpLimit = true;
                 }
@@ -505,8 +533,8 @@ public partial class MainWindow : Window
             {
                 allyield = allmake / allcost * 100;// 总收益率
             }
-            var list = g_codeDatas.Select(x => x.Value);
-            var content = string.Join(Environment.NewLine, list);
+            //var list = g_codeDatas.Select(x => x.Value);
+            //var content = string.Join(Environment.NewLine, list) + Environment.NewLine;
             foreach (var item in g_conf.ExtendControls)
             {
                 if (!item.Visable)
@@ -534,7 +562,7 @@ public partial class MainWindow : Window
                 };
                 if (item.Key.StartsWith(StockIndexPrefix))
                 {
-                    temp = $"{newline}{ImportantIndexs[item.Key]?.IndexInfo} ";
+                    temp = $"{newline}{StockConfigArray.ImportantIndexs[item.Key]?.IndexInfo} ";
                 }
                 content += temp;
             }
@@ -560,9 +588,6 @@ public partial class MainWindow : Window
     {
         Delay(g_conf.Interval < 2 ? 2000 : g_conf.Interval * 1000);
     }
-
-    public static SolidColorBrush color_bg;
-    public static SolidColorBrush color_fg;
 
     private void UpdateUI(string msg, UIStatus status = UIStatus.Normal)
     {
@@ -597,19 +622,26 @@ public partial class MainWindow : Window
                 break;
         }
     }
+    #endregion
 
-    private async Task<StockInfo> Request(StockConfig sc)
+    #region 请求数据
+    private async Task<StockInfo> Request(StockConfig sc, bool useCache)
     {
         try
         {
+            if (useCache)
+            {
+                g_last_res ??= await Request(sc, false);// 使用缓存时 如果缓存为空则请求一次
+                return g_last_res;
+            }
             var request = new RestRequest();
             request.AddQueryParameter("q", sc.Code);
             var response = await g_client.GetAsync(request);
             if (response.IsSuccessStatusCode)
             {
                 var content = response.Content;
-                var info = StockInfo.Get(content);
-                return info;
+                g_last_res = StockInfo.Get(content);
+                return g_last_res;
             }
             else
             {
@@ -624,10 +656,18 @@ public partial class MainWindow : Window
         return null;
     }
 
-    private async Task<List<StockInfo>> Request(List<StockConfig> scs)
+    private async Task<List<StockInfo>> Request(List<StockConfig> scs, bool useCache)
     {
         try
         {
+            if (useCache)
+            {
+                if (g_last_res_set == null || g_last_res_set.Count == 0)
+                {
+                    g_last_res_set = await Request(scs, false);// 使用缓存时 如果缓存为空则请求一次
+                }
+                return g_last_res_set;
+            }
             var codes = string.Join(",", scs.Where(x => x.Code.IsNullOrWhiteSpace() == false).Select(x => x.Code));
             var request = new RestRequest();
             request.AddQueryParameter("q", codes);
@@ -635,11 +675,11 @@ public partial class MainWindow : Window
             if (response.IsSuccessStatusCode)
             {
                 var contents = response.Content.Split(';');
-                var list = new List<StockInfo>();
                 if (contents.Length == 0)
                 {
-                    return list;
+                    return g_last_res_set;
                 }
+                g_last_res_set.Clear();
                 foreach (var content in contents)
                 {
                     if (content.IsNullOrWhiteSpace())
@@ -649,10 +689,10 @@ public partial class MainWindow : Window
                     var stock = StockInfo.Get(content.Trim());
                     if (stock != null)
                     {
-                        list.Add(stock);
+                        g_last_res_set.Add(stock);
                     }
                 }
-                return list;
+                return g_last_res_set;
             }
             else
             {
@@ -666,7 +706,9 @@ public partial class MainWindow : Window
 
         return null;
     }
+    #endregion
 
+    #region 打开子窗口
     private void MakeConfigWindow()
     {
         g_configWindow ??= new ConfigWindow(this)
@@ -683,14 +725,50 @@ public partial class MainWindow : Window
         if (g_configWindow.Visibility == Visibility.Visible)
         {
             g_configWindow.Hide();
+            ConfigWindowShow = false;
         }
         else
         {
             g_configWindow.Show();
+            ConfigWindowShow = true;
         }
         Focus();
     }
 
+    private void MakeUpdater()
+    {
+        g_updater?.Close();
+
+        var param = new Pdone.Updater.UI.Parameter()
+        {
+            AppName = App.ProductName,
+            DarkMode = g_conf.DarkMode,
+            Language = g_conf.Lang == "cn" ? "zh-CN" : "en-US",
+            CurrentVersion = App.ProductVersion,
+            TaskbarIcon = TaskbarIcon,
+            PageImage = PageImage,
+            RepoName = App.ProductName,
+        };
+        g_updater = new Pdone.Updater.UI.Main(param)
+        {
+            Owner = this,
+            ShowInTaskbar = ShowInTaskbar,
+            Topmost = Topmost,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+        };
+
+        if (g_updater.Visibility == Visibility.Visible)
+        {
+            g_updater.Hide();
+        }
+        else
+        {
+            g_updater.Show();
+        }
+    }
+    #endregion
+
+    #region 单击菜单项
     private void MenuItem_Click(object sender, RoutedEventArgs e)
     {
         if (sender is MenuItem item)
@@ -759,23 +837,16 @@ public partial class MainWindow : Window
                 BorderTwinkle(g_conf.Debug);
                 break;
             case "menu_check_update":
-                var startInfo = new ProcessStartInfo()
-                {
-                    FileName = UpdaterPath,
-                    Arguments = $"{App.UpdateMask}" +
-                    $" {App.ProductVersion}" +
-                    $" {g_conf.CheckUpdateUrl}" +
-                    $" {Path.Combine(AppDomain.CurrentDomain.BaseDirectory, App.ProductFileName)}" +
-                    $" {UpdaterIcoPath}",
-                };
-                Process.Start(startInfo);
+                MakeUpdater();
                 break;
             default:
                 MessageBox.Show(this, "Nothing happened...", i18n[g_conf.Lang]["ui_title_tip"]);
                 break;
         }
     }
+    #endregion
 
+    #region 边框闪烁
     /// <summary>
     /// 边框闪烁
     /// </summary>
@@ -816,4 +887,49 @@ public partial class MainWindow : Window
             });
         });
     }
+    #endregion
+
+    #region 隐藏窗口快捷键
+    public struct HotKeys
+    {
+        public static int MainShow => (int)System.Windows.Forms.Keys.Oemtilde;
+    }
+
+    protected override void OnSourceInitialized(EventArgs e)
+    {
+        base.OnSourceInitialized(e);
+
+        var hwnd = new WindowInteropHelper(this).Handle;
+        RegisterHotKey(hwnd, HotKeys.MainShow, MOD_CTRL, HotKeys.MainShow);
+
+        var source = HwndSource.FromHwnd(hwnd);
+        source.AddHook(WndProc);
+    }
+
+    private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wparam, IntPtr lparam, ref bool handled)
+    {
+        if (msg == 0x0312) // 0x0312 是 WM_HOTKEY 消息
+        {
+            var hotKeyId = wparam.ToInt32();
+            if (hotKeyId == HotKeys.MainShow)
+            {
+                if (Visibility == Visibility.Visible)
+                {
+                    Hide();
+                    g_configWindow?.Hide();
+                }
+                else
+                {
+                    Show();
+                    if (ConfigWindowShow)
+                    {
+                        MakeConfigWindow();
+                    }
+                }
+            }
+        }
+
+        return IntPtr.Zero;
+    }
+    #endregion
 }

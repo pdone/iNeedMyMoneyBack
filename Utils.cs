@@ -2,27 +2,24 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Interop;
-
-#pragma warning disable IDE0007 // 使用隐式类型
-#pragma warning disable IDE0090 // 使用 "new(...)"
-#pragma warning disable IDE1006 // 命名样式
 
 namespace iNeedMyMoneyBack;
 
 public static class Utils
 {
+    #region 扩展方法
     private static readonly JsonSerializerOptions options = new()
     {
         WriteIndented = true,
         Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
     };
-    #region 扩展方法
+
     public static double Parse(string input)
     {
         double.TryParse(input, out var result);
@@ -77,8 +74,8 @@ public static class Utils
 
     public static int GetVisualWidth(string input)
     {
-        int visualWidth = 0;
-        foreach (char c in input)
+        var visualWidth = 0;
+        foreach (var c in input)
         {
             if (char.IsHighSurrogate(c) || char.IsLowSurrogate(c))
             {
@@ -137,7 +134,8 @@ public static class Utils
         ["ui_title_tip"] = ["Tip", "提示"],
         ["ui_title_err"] = ["Error", "错误"],
         ["ui_title_warn"] = ["Warning", "警告"],
-        ["ui_title_check_update"] = ["Check Update", "检查更新"],
+        ["ui_title_check_update"] = ["Check Updates", "检查更新"],
+        ["ui_title_config"] = ["Config", "配置"],
         ["ui_msg_check_update"] = ["Version {0}\n\nYou're up to date.", "版本 {0}\n\n已经是最新版本。"],
 
         ["ui_name"] = ["Name", "名称"],
@@ -205,43 +203,6 @@ public static class Utils
     /// 用户数据目录
     /// </summary>
     public static string UserDataPath => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), App.ProductName);
-    /// <summary>
-    /// 自动更新缓存目录
-    /// </summary>
-    public static string UpdateCachePath => Path.Combine(UserDataPath, "updater");
-    /// <summary>
-    /// 更新器
-    /// </summary>
-    public static string UpdaterPath => Path.Combine(UpdateCachePath, App.UpdaterFileName);
-    public static string UpdaterIcoPath => Path.Combine(UpdateCachePath, "app.ico");
-    /// <summary>
-    /// 加载更新器
-    /// </summary>
-    public static void LodaUpdater()
-    {
-        try
-        {
-            Directory.CreateDirectory(UpdateCachePath);
-            if (!File.Exists(UpdaterPath))
-            {
-                var resourceName = $"{App.ProductName}.Resources.{App.UpdaterFileName}";
-                using Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName);
-                if (stream != null)
-                {
-                    using FileStream fs = new FileStream(UpdaterPath, FileMode.Create, FileAccess.Write);
-                    stream.CopyTo(fs);
-                }
-            }
-            if (!File.Exists(UpdaterIcoPath))
-            {
-                File.WriteAllBytes(UpdaterIcoPath, Resource.App);
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.Error(ex);
-        }
-    }
     #endregion
 
     #region 拖动窗口
@@ -263,26 +224,27 @@ public static class Utils
     }
     #endregion
 
+    #region 交易时间判断
     /// <summary>
     /// 判断当前时间是否在A股交易时间内（不包括节假日检查）
     /// </summary>
     /// <returns>如果在交易时间内返回true，否则返回false</returns>
     public static bool IsTradingTime()
     {
-        DateTime now = DateTime.Now;
+        var now = DateTime.Now;
 
         // 检查是否是工作日（这里简单认为是周一到周五，实际可能需要考虑节假日）
-        DayOfWeek dayOfWeek = now.DayOfWeek;
+        var dayOfWeek = now.DayOfWeek;
         if (dayOfWeek < DayOfWeek.Monday || dayOfWeek > DayOfWeek.Friday)
         {
             return false; // 不是工作日，不交易
         }
 
         // 定义交易时间
-        DateTime startTime = new DateTime(now.Year, now.Month, now.Day, 9, 30, 0);
-        DateTime endTimeMorning = new DateTime(now.Year, now.Month, now.Day, 11, 30, 0);
-        DateTime startTimeAfternoon = new DateTime(now.Year, now.Month, now.Day, 13, 0, 0);
-        DateTime endTime = new DateTime(now.Year, now.Month, now.Day, 15, 0, 0);
+        var startTime = new DateTime(now.Year, now.Month, now.Day, 9, 30, 0);
+        var endTimeMorning = new DateTime(now.Year, now.Month, now.Day, 11, 30, 0);
+        var startTimeAfternoon = new DateTime(now.Year, now.Month, now.Day, 13, 0, 0);
+        var endTime = new DateTime(now.Year, now.Month, now.Day, 15, 0, 0);
 
         // 判断是否在上午交易时间段内
         if (now >= startTime && now <= endTimeMorning)
@@ -299,6 +261,17 @@ public static class Utils
         // 如果都不满足，则不在交易时间内
         return false;
     }
+    #endregion
+
+    #region 全局快捷键
+    public const int MOD_CTRL = 0x0002; // Ctrl 键
+
+    [DllImport("user32.dll")]
+    public static extern int RegisterHotKey(IntPtr hWnd, int id, int fsModifiers, int vk);
+
+    [DllImport("user32.dll")]
+    public static extern int UnregisterHotKey(IntPtr hWnd, int id);
+    #endregion
 }
 
 #region 日志
@@ -312,7 +285,7 @@ public class Logger
     public static bool enable = true;
 
     //死锁
-    public static object loglock = new object();
+    public static object loglock = new();
 
     public static void Debug(string content)
     {
@@ -352,14 +325,14 @@ public class Logger
                 Directory.CreateDirectory(path);
             }
 
-            string time = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss:fff");//获取当前系统时间
-            string filename = path + "/" + DateTime.Now.ToString("yyyy-MM-dd") + ".log";//用日期对日志文件命名
+            var time = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss:fff");//获取当前系统时间
+            var filename = path + "/" + DateTime.Now.ToString("yyyy-MM-dd") + ".log";//用日期对日志文件命名
 
             //创建或打开日志文件，向日志文件末尾追加记录
-            StreamWriter mySw = File.AppendText(filename);
+            var mySw = File.AppendText(filename);
 
             //向日志文件写入内容
-            string write_content = time + " [" + type + "] " + content;
+            var write_content = time + " [" + type + "] " + content;
             mySw.WriteLine(write_content);
 
             //关闭日志文件
@@ -368,3 +341,127 @@ public class Logger
     }
 }
 #endregion
+
+public static class ContextMenuHelper
+{
+    /// <summary>
+    /// 在 ContextMenu 中查找指定名称的 MenuItem。
+    /// </summary>
+    /// <param name="contextMenu">要搜索的 ContextMenu。</param>
+    /// <param name="name">MenuItem 的名称。</param>
+    /// <returns>找到的 MenuItem；如果没有找到，则返回 null。</returns>
+    public static MenuItem FindMenuItem(this ContextMenu contextMenu, string name)
+    {
+        if (contextMenu == null || string.IsNullOrEmpty(name))
+        {
+            return null;
+        }
+
+        foreach (var item in contextMenu.Items)
+        {
+            if (item is MenuItem menuItem)
+            {
+                if (IsMenuItemWithName(menuItem, name))
+                {
+                    return menuItem;
+                }
+
+                // 递归查找子菜单中的 MenuItem
+                if (FindMenuItemInSubmenu(menuItem, name) is MenuItem subItem)
+                {
+                    return subItem;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static bool IsMenuItemWithName(MenuItem menuItem, string name)
+    {
+        // 检查 x:Name 和 Name 属性
+        return (string.Equals((string)menuItem.GetValue(FrameworkElement.NameProperty), name, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(menuItem.Name, name, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static MenuItem FindMenuItemInSubmenu(MenuItem parentMenuItem, string name)
+    {
+        if (parentMenuItem is not null && parentMenuItem.HasItems)
+        {
+            foreach (var subItem in parentMenuItem.Items)
+            {
+                if (subItem is MenuItem subMenuItem)
+                {
+                    if (IsMenuItemWithName(subMenuItem, name))
+                    {
+                        return subMenuItem;
+                    }
+
+                    // 继续递归查找子菜单
+                    if (FindMenuItemInSubmenu(subMenuItem, name) is MenuItem foundMenuItem)
+                    {
+                        return foundMenuItem;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    public static MenuItem FindMenuItemByTag(this ContextMenu contextMenu, string tag)
+    {
+        if (contextMenu == null || string.IsNullOrEmpty(tag))
+        {
+            return null;
+        }
+
+        foreach (var item in contextMenu.Items)
+        {
+            if (item is MenuItem menuItem)
+            {
+                if (IsMenuItemWithTag(menuItem, tag))
+                {
+                    return menuItem;
+                }
+
+                // 递归查找子菜单中的 MenuItem
+                if (FindMenuItemInSubmenuByTag(menuItem, tag) is MenuItem subItem)
+                {
+                    return subItem;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static bool IsMenuItemWithTag(MenuItem menuItem, string tag)
+    {
+        // 检查 x:Name 和 Name 属性
+        return string.Equals(menuItem.Tag as string, tag, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static MenuItem FindMenuItemInSubmenuByTag(MenuItem parentMenuItem, string tag)
+    {
+        if (parentMenuItem is not null && parentMenuItem.HasItems)
+        {
+            foreach (var subItem in parentMenuItem.Items)
+            {
+                if (subItem is MenuItem subMenuItem)
+                {
+                    if (IsMenuItemWithTag(subMenuItem, tag))
+                    {
+                        return subMenuItem;
+                    }
+
+                    // 继续递归查找子菜单
+                    if (FindMenuItemInSubmenu(subMenuItem, tag) is MenuItem foundMenuItem)
+                    {
+                        return foundMenuItem;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+}
