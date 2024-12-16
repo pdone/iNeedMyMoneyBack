@@ -5,10 +5,14 @@
 
 [![](https://img.shields.io/github/release/pdone/iNeedMyMoneyBack?style=for-the-badge)](https://github.com/pdone/iNeedMyMoneyBack/releases/latest)
 [![](https://img.shields.io/github/downloads/pdone/iNeedMyMoneyBack/total?style=for-the-badge)](https://github.com/pdone/iNeedMyMoneyBack/releases)
-[![](https://img.shields.io/github/stars/pdone/iNeedMyMoneyBack?style=for-the-badge)](https://github.com/pdone/iNeedMyMoneyBack)
+[![](https://img.shields.io/github/stars/pdone/iNeedMyMoneyBack?style=for-the-badge)](https://github.com/pdone/iNeedMyMoneyBack/stargazers)
 [![](https://img.shields.io/github/issues/pdone/iNeedMyMoneyBack?style=for-the-badge)](https://github.com/pdone/iNeedMyMoneyBack/issues)
 
 </div>
+
+## 简介
+
+一个监控股票的工具。
 
 ### 主界面
 
@@ -19,6 +23,7 @@
 - 勾选 `数据滚动显示` 时，始终只显示一条数据，按配置列表滚动显示。
 - 未勾选 `数据滚动显示` 时，将显示所有配置中的数据。
 - 界面右下角处，可以拖动来改变大小。
+- 建议安装 fonts 文件夹中的两个字体，已达到最佳显示效果。
 
 ### 菜单
 
