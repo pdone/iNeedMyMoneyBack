@@ -101,4 +101,4 @@ https://qt.gtimg.cn/
 
 ## 更新日志
 
-[![](https://img.shields.io/badge/updete-record-fedcba?style=for-the-badge)](/Updata.md)
+[![](https://img.shields.io/badge/updete-record-fedcba?style=for-the-badge)](/Update.md)
