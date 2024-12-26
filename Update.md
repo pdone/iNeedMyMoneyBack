@@ -1,7 +1,7 @@
 <div align="center">
 
 <img alt="logo" src="assets/inmmb.png" width=128 height=128>
-<h1>iNeedMyMoneyBack 更新记录</h1>
+<h1>iNeedMyMoneyBack</h1>
 
 [![](https://img.shields.io/github/release/pdone/iNeedMyMoneyBack?style=for-the-badge)](https://github.com/pdone/iNeedMyMoneyBack/releases/latest)
 [![](https://img.shields.io/github/downloads/pdone/iNeedMyMoneyBack/total?style=for-the-badge)](https://github.com/pdone/iNeedMyMoneyBack/releases)
@@ -10,7 +10,9 @@
 
 </div>
 
-## 版本 1.1
+## 更新记录
+
+### 版本 1.1
 
 - 增加 数据动态对齐
 - 增加 背景透明（勾选背景透明，主界面右上角会显示一个实心圆，用于拖动）
