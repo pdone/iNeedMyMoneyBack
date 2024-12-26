@@ -65,6 +65,11 @@ https://github.com/pdone/iNeedMyMoneyBack/releases/latest/download/iNeedMyMoneyB
 
 https://qt.gtimg.cn/
 
+### 数据对齐显示
+
+安装 [fonts](/fonts/) 文件夹中的等宽字体，并且设置别名，确保别名长度一致，可以让数据对齐显示。
+> 也可以到字体官方网站下载 [阿里巴巴普惠体](https://www.alibabafonts.com/#/font)、[Cascadia Code](https://github.com/microsoft/cascadia-code)
+
 ### 程序日志和配置文件路径
 
 `%AppData%/iNeedMyMoneyBack`
@@ -93,3 +98,7 @@ https://qt.gtimg.cn/
 ![](https://raw.githubusercontent.com/pdone/static/master/img/donate/zfb_wx.jpg)
 
 </details>
+
+## 更新日志
+
+[![](https://img.shields.io/badge/updete-record-fedcba?style=for-the-badge)](/Updata.md)
