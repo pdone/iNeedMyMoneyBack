@@ -239,6 +239,10 @@ public class Config
     /// </summary>
     public bool DataRoll { get; set; } = false;
     /// <summary>
+    /// 透明背景
+    /// </summary>
+    public bool Transparent { get; set; } = false;
+    /// <summary>
     /// 不透明度
     /// </summary>
     public double Opacity { get; set; } = 0.8;

@@ -122,6 +122,7 @@ public static class Utils
         ["menu_opacity"] = ["Opacity {0}%", "不透明度 {0}%"],
         ["menu_opacity_igt"] = ["Ctrl+Wheel", "Ctrl+滚轮"],
         ["menu_hide_border"] = ["Hide Border", "隐藏边框"],
+        ["menu_transparent"] = ["Transparent", "背景透明"],
         ["btn_close"] = ["Close", "关闭"],
         ["col_code"] = ["Code", "代码"],
         ["col_name"] = ["Name", "名称"],
@@ -137,6 +138,7 @@ public static class Utils
         ["ui_title_check_update"] = ["Check Updates", "检查更新"],
         ["ui_title_config"] = ["Config", "配置"],
         ["ui_msg_check_update"] = ["Version {0}\n\nYou're up to date.", "版本 {0}\n\n已经是最新版本。"],
+        ["ui_drag_block"] = ["Drag the block to move the window", "拖动块来移动窗口"],
 
         ["ui_name"] = ["Name", "名称"],
         ["ui_price"] = ["Price", "价格"],

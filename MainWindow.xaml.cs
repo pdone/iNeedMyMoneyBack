@@ -24,6 +24,7 @@ public partial class MainWindow : Window
     public static List<StockConfig> g_conf_stocks_with_index = [];// 配置的股票集合 与 重要指数集合 的并集
     public static SolidColorBrush color_bg;// 背景色画刷
     public static SolidColorBrush color_fg;// 前景色画刷
+    public static SolidColorBrush color_transparent = new(Colors.Transparent);// 透明画刷
     #endregion
 
     #region 私有成员变量
@@ -48,7 +49,7 @@ public partial class MainWindow : Window
     /// <summary>
     /// 数值补齐长度
     /// </summary>
-    private const int PricePad = 5;
+    //private const int PricePad = 5;
     /// <summary>
     /// 告警值 涨跌幅的绝对值大于此值时 界面高亮提示 单位 %
     /// </summary>
@@ -127,16 +128,20 @@ public partial class MainWindow : Window
         menu_data_roll.IsChecked = g_conf.DataRoll;
         menu_debug_mode.IsChecked = g_conf.Debug;
         menu_hide_border.IsChecked = g_conf.HideBorder;
+        menu_transparent.IsChecked = g_conf.Transparent;
+        DragBlock.Visibility = g_conf.Transparent ? Visibility.Visible : Visibility.Collapsed;
 
         Resources["BorderThickness"] = new Thickness(g_conf.HideBorder ? 0 : 1);
         Resources["MainOpacity"] = Math.Min(Opacity + MenuOpacityAdded, 1);
 
         // 界面事件绑定
         PreviewMouseDown += (_, __) => DragWindow(this);
-        PreviewMouseWheel += (_, e) => OnPreviewMouseWheel(_, e);
-        ContextMenu.PreviewMouseWheel += (_, e) => OnPreviewMouseWheel(_, e, false);
+        PreviewMouseWheel += OnPreviewMouseWheel;
+        ContextMenu.PreviewMouseWheel += (_, e) => OnPreviewMouseWheel(e, false);
         ContextMenu.PreviewKeyDown += OnKeyDown;
         PreviewKeyDown += OnKeyDown;
+        // PreviewKeyUp += OnKeyUp;
+        // ContextMenu.PreviewKeyUp += OnKeyUp;
         Closed += (_, __) => BeforeExit();
         g_worker.DoWork += DoWork;
         g_worker.RunWorkerAsync();
@@ -158,6 +163,14 @@ public partial class MainWindow : Window
         InitLang();
     }
 
+    private void OnKeyUp(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.LeftCtrl || e.Key == Key.RightCtrl)
+        {
+            border.Background = g_conf.Transparent ? color_transparent : color_bg;
+        }
+    }
+
     /// <summary>
     /// 初始化配色
     /// </summary>
@@ -174,7 +187,7 @@ public partial class MainWindow : Window
             color_fg = SystemColors.ControlTextBrush;
         }
 
-        border.Background = color_bg;
+        border.Background = g_conf.Transparent ? color_transparent : color_bg;
         lb.Foreground = color_fg;
         Resources["TextColor"] = color_fg;
         Resources["SubMenuBackground"] = color_bg;
@@ -197,10 +210,11 @@ public partial class MainWindow : Window
     /// </summary>
     private void InitLang()
     {
+        DragBlock.ToolTip = i18n[g_conf.Lang]["ui_drag_block"];
         menu_ver.Header = $"{i18n[g_conf.Lang][menu_ver.Name]} {App.ProductVersion}(_V)";
         SetMenuItemHeader(menu_exit, "X");
         SetMenuItemHeader(menu_hide_border, "H");
-        SetMenuItemHeader(menu_dark, "N");
+        SetMenuItemHeader(menu_dark, "D");
         SetMenuItemHeader(menu_topmost, "T");
         SetMenuItemHeader(menu_conf, "C");
         SetMenuItemHeader(menu_conf_file, "F");
@@ -210,7 +224,8 @@ public partial class MainWindow : Window
         SetMenuItemHeader(menu_lang, "L");
         SetMenuItemHeader(menu_ui, "U");
         SetMenuItemHeader(menu_check_update, "U");
-        SetMenuItemHeader(menu_debug_mode);
+        SetMenuItemHeader(menu_debug_mode, "D");
+        SetMenuItemHeader(menu_transparent, "A");
         menu_opacity.Header = string.Format(i18n[g_conf.Lang]["menu_opacity"], (Opacity * 100).ToString("f0"));
         menu_opacity.InputGestureText = i18n[g_conf.Lang]["menu_opacity_igt"];
     }
@@ -243,10 +258,10 @@ public partial class MainWindow : Window
     /// <param name="needPressCtrl"></param>
     private void OnPreviewMouseWheel(object sender, MouseWheelEventArgs e)
     {
-        OnPreviewMouseWheel(sender, e, true);
+        OnPreviewMouseWheel(e, true);
     }
 
-    private void OnPreviewMouseWheel(object sender, MouseWheelEventArgs e, bool needPressCtrl = true)
+    private void OnPreviewMouseWheel(MouseWheelEventArgs e, bool needPressCtrl = true)
     {
         if (needPressCtrl)
         {
@@ -288,16 +303,17 @@ public partial class MainWindow : Window
     {
         if (Keyboard.Modifiers == ModifierKeys.Control)
         {
+            // border.Background = color_bg;
             var menuItemName = e.Key switch
             {
+                Key.A => menu_transparent.Name,
                 Key.B => menu_show_in_taskbar.Name,
                 Key.C => menu_conf.Name,
-                Key.D => menu_data_dir.Name,
+                Key.D => menu_dark.Name,
                 Key.F => menu_conf_file.Name,
                 Key.H => menu_hide_border.Name,
                 Key.U => menu_check_update.Name,
                 Key.L => menu_lang.Name,
-                Key.N => menu_dark.Name,
                 Key.R => menu_data_roll.Name,
                 Key.T => menu_topmost.Name,
                 Key.X => menu_exit.Name,
@@ -369,6 +385,14 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
+    /// 数据对齐需要填充的长度
+    /// </summary>
+    private readonly Dictionary<string, int> PadLengths = [];
+    /// <summary>
+    /// 字段数据
+    /// </summary>
+    private readonly Dictionary<string, string> FieldDatas = [];
+    /// <summary>
     /// 整理数据
     /// </summary>
     /// <param name="sc">配置</param>
@@ -377,7 +401,7 @@ public partial class MainWindow : Window
     private string StockInfoHandle(ref StockConfig sc, StockInfo res)
     {
         sc.Name = res.StockName;
-        var info = $"{sc.DiaplayName}";
+        var info = sc.DiaplayName;
         var makeMoney = res.CurrentPrice - sc.BuyPrice;
         sc.DayMake = res.PriceChange * sc.BuyCount;
         sc.AllMake = makeMoney * sc.BuyCount;
@@ -388,6 +412,7 @@ public partial class MainWindow : Window
         {
             sc.Yield = sc.AllMake / sc.Cost * 100;
         }
+        // 整理字段数据 计算对齐所需填充长度
         foreach (var kvp in g_conf.FieldControls)
         {
             if (!kvp.Value)// 启用字段
@@ -397,19 +422,45 @@ public partial class MainWindow : Window
             var dot = res.StockName.EndsWith("ETF") ? "f3" : "f2";
             var fieldData = kvp.Key switch
             {
-                "ui_price" => $" {res.CurrentPrice.ToString(dot),PricePad}",
-                "ui_change" => $" {res.PriceChangePercent,PricePad:f2}%",
-                "ui_buy_price" => hold ? $" {sc.BuyPrice,PricePad:f2}" : "",
-                "ui_num" => hold ? $" {sc.BuyCount,PricePad}" : "",
-                "ui_cost" => hold ? $" {sc.Cost,PricePad:f0}" : "",
-                "ui_market_value" => hold ? $" {sc.MarketValue,PricePad:f0}" : "",
-                "ui_yield" => hold ? $" {sc.Yield,PricePad:f2}%" : "",
-                "ui_day_make" => hold ? $" {sc.DayMake,PricePad:f0}" : "",
-                "ui_all_make" => hold ? $" {sc.AllMake,PricePad:f0}" : "",
-                "ui_yesterday_todayopen" => $" {res.YesterdayClose.ToString(dot),PricePad}{Symbols.ArrowRight}{res.TodayOpen.ToString(dot),-PricePad}",
-                "ui_lowest_highest" => $" {res.LowestPrice.ToString(dot),PricePad}{Symbols.ArrowUpDown}{res.HighestPrice.ToString(dot),-PricePad}",
-                "ui_limitup_limitdown" => res.PriceLimitDown != res.PriceLimitUp ? $" {res.PriceLimitDown.ToString(dot),PricePad}{Symbols.Wave}{res.PriceLimitUp.ToString(dot),-PricePad}" : "",
+                "ui_price" => res.CurrentPrice.ToString(dot),
+                "ui_change" => $"{res.PriceChangePercent:f2}%",
+                "ui_buy_price" => hold ? $"{sc.BuyPrice:f2}" : "",
+                "ui_num" => hold ? $"{sc.BuyCount}" : "",
+                "ui_cost" => hold ? $"{sc.Cost:f0}" : "",
+                "ui_market_value" => hold ? $"{sc.MarketValue:f0}" : "",
+                "ui_yield" => hold ? $"{sc.Yield:f2}%" : "",
+                "ui_day_make" => hold ? $"{sc.DayMake:f0}" : "",
+                "ui_all_make" => hold ? $"{sc.AllMake:f0}" : "",
+                "ui_yesterday_todayopen" => $"{res.YesterdayClose.ToString(dot)}{Symbols.ArrowRight}{res.TodayOpen.ToString(dot)}",
+                "ui_lowest_highest" => $"{res.LowestPrice.ToString(dot)}{Symbols.ArrowUpDown}{res.HighestPrice.ToString(dot)}",
+                "ui_limitup_limitdown" => res.PriceLimitDown != res.PriceLimitUp ? $"{res.PriceLimitDown.ToString(dot)}{Symbols.Wave}{res.PriceLimitUp.ToString(dot)}" : "",
                 _ => ""
+            };
+
+            FieldDatas[kvp.Key] = fieldData;
+            if (PadLengths.ContainsKey(kvp.Key))
+            {
+                PadLengths[kvp.Key] = Math.Max(PadLengths[kvp.Key], fieldData.Length);
+            }
+            else
+            {
+                PadLengths[kvp.Key] = fieldData.Length;
+            }
+        }
+        foreach (var kvp in g_conf.FieldControls)
+        {
+            if (!kvp.Value)// 启用字段
+            {
+                continue;
+            }
+            var val = FieldDatas[kvp.Key];// 字段数据
+            var maxLen = PadLengths[kvp.Key];// 字段最大长度
+            var leftLen = (maxLen - val.Length) / 2 + val.Length;// 字段左侧需要填充的长度
+            var fieldData = kvp.Key switch
+            {
+                "ui_yesterday_todayopen" or "ui_lowest_highest" or "ui_limitup_limitdown"
+                  => $" {val.PadLeft(leftLen).PadRight(maxLen)}",
+                _ => $" {val.PadLeft(maxLen)}",
             };
             info += fieldData;
         }
@@ -591,6 +642,11 @@ public partial class MainWindow : Window
 
     private void UpdateUI(string msg, UIStatus status = UIStatus.Normal)
     {
+        if (this == null)
+        {
+            return;
+        }
+
         Application.Current.Dispatcher.Invoke(() =>
         {
             lb.Content = msg;
@@ -720,8 +776,9 @@ public partial class MainWindow : Window
             Opacity = Opacity,
             ShowInTaskbar = ShowInTaskbar,
         };
-        g_configWindow.PreviewMouseWheel += (_, e) => OnPreviewMouseWheel(e);
-        g_configWindow.KeyDown += OnKeyDown;
+        g_configWindow.PreviewMouseWheel += OnPreviewMouseWheel;
+        g_configWindow.PreviewKeyDown += OnKeyDown;
+        // g_configWindow.PreviewKeyUp += OnKeyUp;
         if (g_configWindow.Visibility == Visibility.Visible)
         {
             g_configWindow.Hide();
@@ -744,7 +801,7 @@ public partial class MainWindow : Window
             AppName = App.ProductName,
             DarkMode = g_conf.DarkMode,
             Language = g_conf.Lang == "cn" ? "zh-CN" : "en-US",
-            CurrentVersion = App.ProductVersion,
+            CurrentVersion = $"v{App.ProductVersion}",
             TaskbarIcon = TaskbarIcon,
             PageImage = PageImage,
             RepoName = App.ProductName,
@@ -787,7 +844,9 @@ public partial class MainWindow : Window
             case "menu_hide_border":
                 g_conf.HideBorder = !g_conf.HideBorder;
                 menu_hide_border.IsChecked = g_conf.HideBorder;
-                Resources["BorderThickness"] = new Thickness(g_conf.HideBorder ? 0 : 1);
+                var tkns = new Thickness(g_conf.HideBorder ? 0 : 1);
+                Resources["BorderThickness"] = tkns;
+                border.BorderThickness = tkns;
                 g_configWindow?.InitBorderThickess(g_conf.HideBorder);
                 break;
             case "menu_dark":
@@ -839,6 +898,12 @@ public partial class MainWindow : Window
             case "menu_check_update":
                 MakeUpdater();
                 break;
+            case "menu_transparent":
+                g_conf.Transparent = !g_conf.Transparent;
+                menu_transparent.IsChecked = g_conf.Transparent;
+                border.Background = g_conf.Transparent ? color_transparent : color_bg;
+                DragBlock.Visibility = g_conf.Transparent ? Visibility.Visible : Visibility.Collapsed;
+                break;
             default:
                 MessageBox.Show(this, "Nothing happened...", i18n[g_conf.Lang]["ui_title_tip"]);
                 break;
@@ -882,7 +947,7 @@ public partial class MainWindow : Window
             Application.Current.Dispatcher.Invoke(() =>
             {
                 border.Padding = new Thickness(1);
-                border.BorderThickness = new Thickness(1);
+                border.BorderThickness = new Thickness(g_conf.HideBorder ? 0 : 1);
                 border.BorderBrush = new SolidColorBrush(Colors.Black);
             });
         });

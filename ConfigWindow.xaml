@@ -20,8 +20,6 @@
     <Window.Resources>
         <SolidColorBrush x:Key="TextColor" />
         <SolidColorBrush x:Key="CheckedColor" />
-        <SolidColorBrush x:Key="GridBackground" />
-        <SolidColorBrush x:Key="GridBorderColor" />
         <Thickness x:Key="BorderThickness" />
         <Style TargetType="Button">
             <Setter Property="Background" Value="Transparent" />
@@ -89,7 +87,8 @@
                           AutoGenerateColumns="False"
                           HeadersVisibility="Column"
                           ScrollViewer.HorizontalScrollBarVisibility="Hidden"
-                          ScrollViewer.VerticalScrollBarVisibility="Hidden">
+                          ScrollViewer.VerticalScrollBarVisibility="Hidden"
+                          SelectionUnit="FullRow">
                     <DataGrid.Style>
                         <Style TargetType="DataGrid">
                             <Setter Property="BorderThickness" Value="0" />

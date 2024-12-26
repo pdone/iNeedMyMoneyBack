@@ -66,7 +66,7 @@ public partial class ConfigWindow : Window
         InitColor();
         InitBorderThickess(_conf.HideBorder);
     }
-
+    private readonly string[] SupportExchange = ["sh", "sz", "bj"];
     private void DataGrid_RowEditEnding(object sender, DataGridRowEditEndingEventArgs e)
     {
         if (e.EditAction != DataGridEditAction.Commit)
@@ -89,9 +89,9 @@ public partial class ConfigWindow : Window
             return;
         }
         var startWith = curItem.Code.Substring(0, 2).ToLower();
-        if (startWith != "sh" && startWith != "sz" && startWith != "bj")
+        if (!SupportExchange.Contains(startWith))
         {
-            MessageBox.Show("代码需要以sh、sz、bj开头，分别代表上海、深圳、北京");
+            MessageBox.Show($"目前只支持 {string.Join("、", SupportExchange)} 开头，分别代表上海、深圳、北京、香港");
             DataGrid.DeleteCommand.Execute(null, dataGrid);
             return;
         }

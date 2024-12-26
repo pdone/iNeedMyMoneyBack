@@ -155,9 +155,7 @@
                 <MenuItem Name="menu_conf_file"
                           Click="MenuItem_Click"
                           InputGestureText="Ctrl+F" />
-                <MenuItem Name="menu_data_dir"
-                          Click="MenuItem_Click"
-                          InputGestureText="Ctrl+D" />
+                <MenuItem Name="menu_data_dir" Click="MenuItem_Click" />
                 <MenuItem Name="menu_debug_mode"
                           Click="MenuItem_Click"
                           StaysOpenOnClick="True" />
@@ -182,7 +180,7 @@
                           StaysOpenOnClick="True" />
                 <MenuItem Name="menu_dark"
                           Click="MenuItem_Click"
-                          InputGestureText="Ctrl+N"
+                          InputGestureText="Ctrl+D"
                           StaysOpenOnClick="True" />
                 <MenuItem Name="menu_topmost"
                           Click="MenuItem_Click"
@@ -192,6 +190,10 @@
                           Click="MenuItem_Click"
                           InputGestureText="Ctrl+B"
                           StaysOpenOnClick="True" />
+                <MenuItem Name="menu_transparent"
+                          Click="MenuItem_Click"
+                          InputGestureText="Ctrl+A"
+                          StaysOpenOnClick="True" />
             </MenuItem>
             <Separator Background="{DynamicResource TextColor}" />
             <MenuItem Name="menu_exit"
@@ -199,13 +201,21 @@
                       InputGestureText="Ctrl+X" />
         </ContextMenu>
     </Window.ContextMenu>
-    <Grid Background="Transparent">
+    <Grid>
+        <Ellipse x:Name="DragBlock"
+                 Width="15"
+                 Height="15"
+                 Margin="0,5,5,0"
+                 HorizontalAlignment="Right"
+                 VerticalAlignment="Top"
+                 Panel.ZIndex="1"
+                 Fill="{DynamicResource TextColor}"
+                 Stroke="{DynamicResource SubMenuBackground}" />
         <Border Name="border"
                 Padding="1"
                 Background="#ddd"
                 BorderBrush="#000"
-                BorderThickness="{DynamicResource BorderThickness}"
-                CornerRadius="0,10,0,10">
+                CornerRadius="0,15,0,15">
             <Label Name="lb"
                    Padding="6,1"
                    Content="Loading"
