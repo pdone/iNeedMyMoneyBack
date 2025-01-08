@@ -216,10 +216,11 @@
                 Background="#ddd"
                 BorderBrush="#000"
                 CornerRadius="0,15,0,15">
-            <Label Name="lb"
+            <Label Name="MainLabel"
                    Padding="6,1"
-                   Content="Loading"
-                   FontSize="16" />
+                   FontSize="16">
+                <TextBlock Name="MainTextBlock" />
+            </Label>
         </Border>
     </Grid>
 </Window>

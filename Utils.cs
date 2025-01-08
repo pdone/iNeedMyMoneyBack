@@ -131,6 +131,7 @@ public static class Utils
         ["col_buycount"] = ["BuyCount", "数量"],
         ["ui_nontrading"] = ["Non-trading", "非交易时间"],
         ["ui_getdatafialed"] = ["Failed to get data", "获取数据失败"],
+        ["ui_main_label_tooltip"] = ["Double-click to view details{0}", "双击查看详情{0}"],
 
         ["ui_title_tip"] = ["Tip", "提示"],
         ["ui_title_err"] = ["Error", "错误"],

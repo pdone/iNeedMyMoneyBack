@@ -31,7 +31,7 @@ public partial class App : Application
     public const string ProductName = "iNeedMyMoneyBack";
     public const string ProductFileName = ProductName + ".exe";
     public const string ProductCompany = "Pdone Technology Ltd.";
-    public const string ProductVersion = "1.1";
+    public const string ProductVersion = "1.2";
     public const string Copyright = "Copyright © pdone 2025";
 
     protected override void OnExit(ExitEventArgs e)

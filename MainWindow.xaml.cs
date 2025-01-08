@@ -4,7 +4,9 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
+using System.Web;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -42,14 +44,25 @@ public partial class MainWindow : Window
     private readonly ImageSource TaskbarIcon = new BitmapImage(new Uri($"pack://application:,,,/iNeedMyMoneyBack;component/Resources/App.ico", UriKind.Absolute));
     private readonly ImageSource PageImage = new BitmapImage(new Uri($"pack://application:,,,/iNeedMyMoneyBack;component/Resources/App.png", UriKind.Absolute));
 
+    public class StockDetailPage
+    {
+        /// <summary>
+        /// 雪球
+        /// </summary>
+        /// <param name="arg">股票代码 如 sh000001</param>
+        /// <returns></returns>
+        public static string XueQiu(string arg) => $"https://xueqiu.com/S/{arg}";
+        /// <summary>
+        /// 同花顺
+        /// </summary>
+        /// <param name="arg">股票名称 如 上证指数</param>
+        /// <returns></returns>
+        public static string TongHuaShun(string arg) => HttpUtility.UrlEncode($"https://www.iwencai.com/unifiedwap/result?w={arg}");
+    }
     /// <summary>
     /// 增加菜单不透明度 避免与主界面重叠时显示不清除
     /// </summary>
     private const double MenuOpacityAdded = 0.3;
-    /// <summary>
-    /// 数值补齐长度
-    /// </summary>
-    //private const int PricePad = 5;
     /// <summary>
     /// 告警值 涨跌幅的绝对值大于此值时 界面高亮提示 单位 %
     /// </summary>
@@ -145,7 +158,7 @@ public partial class MainWindow : Window
         Closed += (_, __) => BeforeExit();
         g_worker.DoWork += DoWork;
         g_worker.RunWorkerAsync();
-
+        MainLabel.PreviewMouseDoubleClick += OnPreviewMouseDoubleClick_MainLabel;
         //myNotifyIcon.IconSource = TaskbarIcon;
 
         // 依赖属性事件绑定
@@ -161,14 +174,6 @@ public partial class MainWindow : Window
 
         InitColor();
         InitLang();
-    }
-
-    private void OnKeyUp(object sender, KeyEventArgs e)
-    {
-        if (e.Key == Key.LeftCtrl || e.Key == Key.RightCtrl)
-        {
-            border.Background = g_conf.Transparent ? color_transparent : color_bg;
-        }
     }
 
     /// <summary>
@@ -188,7 +193,7 @@ public partial class MainWindow : Window
         }
 
         border.Background = g_conf.Transparent ? color_transparent : color_bg;
-        lb.Foreground = color_fg;
+        MainTextBlock.Foreground = color_fg;
         Resources["TextColor"] = color_fg;
         Resources["SubMenuBackground"] = color_bg;
 
@@ -292,6 +297,54 @@ public partial class MainWindow : Window
             Opacity = tempOpacity
         };
         Resources["SubMenuMask"] = tempSubMenuMask;
+    }
+
+
+    /// <summary>
+    /// 左键双击主文本事件
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    private void OnPreviewMouseDoubleClick_MainLabel(object sender, MouseButtonEventArgs e)
+    {
+        if (g_conf.Transparent)// 透明背景时不触发
+        {
+            return;
+        }
+        if (e.ChangedButton != MouseButton.Left)// 仅左键触发
+        {
+            return;
+        }
+        if (sender is not Label tempLabel)
+        {
+            return;
+        }
+        if (tempLabel.Content is not TextBlock tempTextBlock)
+        {
+            return;
+        }
+        var y = e.GetPosition(tempLabel).Y;
+        // 使用反射获取TextBlock的行数
+        var lineCountProperty = typeof(TextBlock).GetProperty("LineCount", BindingFlags.NonPublic | BindingFlags.Instance);
+        // 文本行数
+        var lineCount = (int)lineCountProperty.GetValue(tempTextBlock, null);
+        // 计算行高
+        var lineHeight = tempTextBlock.ActualHeight / lineCount;
+        if (y > g_conf_stocks.Count() * lineHeight)
+        {
+            return;
+        }
+        var idx = (int)(y / lineHeight);
+        if (idx < 0 || idx > g_conf_stocks.Count() - 1)
+        {
+            return;
+        }
+        var stock = g_conf_stocks.ElementAt(idx);
+        if (stock.Code.IsNullOrWhiteSpace())
+        {
+            return;
+        }
+        Process.Start(StockDetailPage.XueQiu(stock.Code));
     }
 
     /// <summary>
@@ -618,13 +671,16 @@ public partial class MainWindow : Window
                 content += temp;
             }
             var status = UIStatus.Normal;
-            if (hasUpLimit)
+            if (!g_conf.Transparent)
             {
-                status = UIStatus.UpLimit;
-            }
-            else if (hasDownLimit)
-            {
-                status = UIStatus.DownLimit;
+                if (hasUpLimit)
+                {
+                    status = UIStatus.UpLimit;
+                }
+                else if (hasDownLimit)
+                {
+                    status = UIStatus.DownLimit;
+                }
             }
             UpdateUI(content, status);
         }
@@ -649,7 +705,7 @@ public partial class MainWindow : Window
 
         Application.Current.Dispatcher.Invoke(() =>
         {
-            lb.Content = msg;
+            MainTextBlock.Text = msg;
             if (status != UIStatus.Normal)
             {
                 UpdateColor(status);
@@ -662,15 +718,15 @@ public partial class MainWindow : Window
         switch (status)
         {
             case UIStatus.UpLimit:
-                lb.Foreground = new SolidColorBrush(Colors.Yellow);
+                MainTextBlock.Foreground = new SolidColorBrush(Colors.Yellow);
                 border.Background = new SolidColorBrush(Colors.Red);
                 break;
             case UIStatus.DownLimit:
-                lb.Foreground = new SolidColorBrush(Colors.YellowGreen);
+                MainTextBlock.Foreground = new SolidColorBrush(Colors.YellowGreen);
                 border.Background = new SolidColorBrush(Colors.Green);
                 break;
             case UIStatus.ProgramError:
-                lb.Foreground = new SolidColorBrush(Colors.Yellow);
+                MainTextBlock.Foreground = new SolidColorBrush(Colors.Yellow);
                 border.Background = new SolidColorBrush(Colors.Purple);
                 break;
             case UIStatus.Normal:
