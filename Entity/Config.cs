@@ -311,9 +311,10 @@ public class Config
         // 个人数据
         new ExtendControlObj("ui_all_stock_day_make"),
         new ExtendControlObj("ui_all_stock_all_make"),
+        new ExtendControlObj("ui_all_yield_day"),
+        new ExtendControlObj("ui_all_yield"),
         new ExtendControlObj("ui_all_cost"),
         new ExtendControlObj("ui_all_market_value"),
-        new ExtendControlObj("ui_all_yield"),
     ];
 
     /// <summary>

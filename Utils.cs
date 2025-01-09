@@ -169,9 +169,10 @@ public static class Utils
 
         ["ui_all_stock_day_make"] = ["AllStockDayMake", "总持日盈"],
         ["ui_all_stock_all_make"] = ["AllStockAllMake", "总持总盈"],
+        ["ui_all_yield_day"] = ["AllYieldDay", "日收益率"],
+        ["ui_all_yield"] = ["AllYield", "总收益率"],
         ["ui_all_cost"] = ["AllCost", "总成本"],
         ["ui_all_market_value"] = ["AllMarketValue", "总市值"],
-        ["ui_all_yield"] = ["AllYield", "总收益率"],
 
         ["ui_yesterday_todayopen"] = ["LastClose TodayOpen", "昨收今开"],
         ["ui_lowest_highest"] = ["Lowest Highest", "最低最高"],

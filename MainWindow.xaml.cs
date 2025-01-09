@@ -153,8 +153,6 @@ public partial class MainWindow : Window
         ContextMenu.PreviewMouseWheel += (_, e) => OnPreviewMouseWheel(e, false);
         ContextMenu.PreviewKeyDown += OnKeyDown;
         PreviewKeyDown += OnKeyDown;
-        // PreviewKeyUp += OnKeyUp;
-        // ContextMenu.PreviewKeyUp += OnKeyUp;
         Closed += (_, __) => BeforeExit();
         g_worker.DoWork += DoWork;
         g_worker.RunWorkerAsync();
@@ -613,10 +611,7 @@ public partial class MainWindow : Window
                 if (StockConfigArray.ImportantIndexs.Any(x => x.Code == stock.Code))
                 {
                     StockConfigArray.ImportantIndexs[stock.Code].IndexInfo = $"{i18n[g_conf.Lang][StockIndexPrefix + stock.Code]} {info.CurrentPrice:f2} {info.PriceChangePercent:f2}%";
-                    //if (!g_conf_stocks.Any(y => y.Code == stock.Code))
-                    //{
                     continue;
-                    //}
                 }
                 content += StockInfoHandle(ref stock, info) + Environment.NewLine;
                 daymake += stock.DayMake;
@@ -633,12 +628,13 @@ public partial class MainWindow : Window
                 }
             }
             var allyield = 0.0;
+            var allyield_day = 0.0;
             if (allcost != 0.0)
             {
                 allyield = allmake / allcost * 100;// 总收益率
+                allyield_day = daymake / allcost * 100;// 总持日收益率
             }
-            //var list = g_codeDatas.Select(x => x.Value);
-            //var content = string.Join(Environment.NewLine, list) + Environment.NewLine;
+
             foreach (var item in g_conf.ExtendControls)
             {
                 if (!item.Visable)
@@ -661,6 +657,7 @@ public partial class MainWindow : Window
                     "ui_all_stock_all_make" => $"{newline}{field} {allmake:f2} ",
                     "ui_all_cost" => $"{newline}{field} {allcost:f2} ",
                     "ui_all_market_value" => $"{newline}{field} {allmarketvalue:f2} ",
+                    "ui_all_yield_day" => $"{newline}{field} {allyield_day:f2}% ",
                     "ui_all_yield" => $"{newline}{field} {allyield:f2}% ",
                     _ => ""
                 };
@@ -834,7 +831,6 @@ public partial class MainWindow : Window
         };
         g_configWindow.PreviewMouseWheel += OnPreviewMouseWheel;
         g_configWindow.PreviewKeyDown += OnKeyDown;
-        // g_configWindow.PreviewKeyUp += OnKeyUp;
         if (g_configWindow.Visibility == Visibility.Visible)
         {
             g_configWindow.Hide();
