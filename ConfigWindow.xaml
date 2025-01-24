@@ -120,6 +120,9 @@
                         <DataGridTextColumn Binding="{Binding NickName}" Header="NickName" />
                         <DataGridTextColumn Binding="{Binding BuyPrice}" Header="BuyPrice" />
                         <DataGridTextColumn Binding="{Binding BuyCount}" Header="BuyCount" />
+                        <DataGridTextColumn Binding="{Binding ReminderPriceUp}" Header="ReminderPriceUp" />
+                        <DataGridTextColumn Binding="{Binding ReminderPriceDown}" Header="ReminderPriceDown" />
+                        <DataGridTextColumn Binding="{Binding ReminderTimes}" Header="ReminderTimes" />
                     </DataGrid.Columns>
                 </DataGrid>
                 <WrapPanel x:Name="FieldControls" />

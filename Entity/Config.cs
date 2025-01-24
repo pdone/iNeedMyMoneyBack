@@ -69,7 +69,7 @@ public class StockConfig
     {
         get; set;
     }
-    public string DiaplayName => string.IsNullOrWhiteSpace(NickName) ? Name : NickName;
+    public string DisplayName => string.IsNullOrWhiteSpace(NickName) ? Name : NickName;
     /// <summary>
     /// 日盈
     /// </summary>
@@ -113,6 +113,27 @@ public class StockConfig
     {
         get; set;
     }
+    /// <summary>
+    /// 提醒价格 大于等于时提醒
+    /// </summary>
+    public double ReminderPriceUp
+    {
+        get; set;
+    }
+    /// <summary>
+    /// 提醒价格 小于等于时提醒
+    /// </summary>
+    public double ReminderPriceDown
+    {
+        get; set;
+    }
+    /// <summary>
+    /// 提醒次数
+    /// </summary>
+    public int ReminderTimes
+    {
+        get; set;
+    } = 1;
 
     public override bool Equals(object obj)
     {
@@ -270,6 +291,20 @@ public class Config
     /// 配置窗口高度
     /// </summary>
     public double ConfigWindowHeight { get; set; } = 165;
+    /// <summary>
+    /// 是否每日重置提醒次数
+    /// </summary>
+    public bool DailyResetReminder
+    {
+        get; set;
+    } = true;
+    /// <summary>
+    /// 上次提醒时间 格式 yyyy-MM-ddTHH:mm:ss
+    /// </summary>
+    public DateTime LastReminderTime
+    {
+        get; set;
+    } = DateTime.MaxValue;
     /// <summary>
     /// 字段显示控制
     /// </summary>

@@ -4,10 +4,11 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:local="clr-namespace:iNeedMyMoneyBack"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:tb="http://www.hardcodet.net/taskbar"
         Title="iNeedMyMoneyBack"
         Width="225"
         Height="26"
-        MinWidth="225"
+        MinWidth="100"
         MinHeight="26"
         AllowsTransparency="True"
         Background="Transparent"
@@ -22,30 +23,14 @@
         <SolidColorBrush x:Key="SubMenuBackground" />
         <SolidColorBrush x:Key="HoverBackground" />
         <Thickness x:Key="BorderThickness" />
-        <Style TargetType="ContextMenu">
-            <Setter Property="Background" Value="{DynamicResource SubMenuBackground}" />
-            <Setter Property="Foreground" Value="{DynamicResource TextColor}" />
-            <Setter Property="Opacity" Value="{DynamicResource MainOpacity}" />
+        <Style TargetType="MenuItem">
             <Setter Property="Template">
                 <Setter.Value>
-                    <ControlTemplate TargetType="ContextMenu">
-                        <Border Background="{TemplateBinding Background}"
-                                BorderBrush="#000"
-                                BorderThickness="{DynamicResource BorderThickness}">
-                            <ItemsPresenter />
-                        </Border>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-        <Style TargetType="{x:Type MenuItem}">
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="{x:Type MenuItem}">
+                    <ControlTemplate TargetType="MenuItem">
                         <Border x:Name="Border"
                                 Padding="2"
                                 Background="Transparent"
-                                BorderThickness="{DynamicResource BorderThickness}">
+                                BorderThickness="1">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition x:Name="ColIcon" SharedSizeGroup="MenuItemIconColumnGroup" />
@@ -146,7 +131,18 @@
         </Style>
     </Window.Resources>
     <Window.ContextMenu>
-        <ContextMenu Padding="0" FontFamily="{StaticResource SecondFont}">
+        <ContextMenu Background="{DynamicResource SubMenuBackground}"
+                     Foreground="{DynamicResource TextColor}"
+                     Opacity="{DynamicResource MainOpacity}">
+            <ContextMenu.Template>
+                <ControlTemplate TargetType="ContextMenu">
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="#000"
+                            BorderThickness="{DynamicResource BorderThickness}">
+                        <ItemsPresenter />
+                    </Border>
+                </ControlTemplate>
+            </ContextMenu.Template>
             <MenuItem Name="menu_ver">
                 <MenuItem Name="menu_check_update"
                           Click="MenuItem_Click"
@@ -168,6 +164,7 @@
                       Click="MenuItem_Click"
                       InputGestureText="Ctrl+R"
                       StaysOpenOnClick="True" />
+            <MenuItem Name="menu_reset_reminder" Click="MenuItem_Click" />
             <MenuItem Name="menu_ui">
                 <MenuItem Name="menu_opacity" StaysOpenOnClick="True" />
                 <MenuItem Name="menu_lang"
@@ -202,9 +199,62 @@
         </ContextMenu>
     </Window.ContextMenu>
     <Grid>
+        <tb:TaskbarIcon x:Name="TrayIcon">
+            <tb:TaskbarIcon.ContextMenu>
+                <ContextMenu Name="TrayMenu"
+                             Background="#222"
+                             Foreground="#eee">
+                    <ContextMenu.Template>
+                        <ControlTemplate>
+                            <Grid>
+                                <Border Margin="2"
+                                        Background="{TemplateBinding Background}"
+                                        BorderBrush="#333"
+                                        BorderThickness="1"
+                                        CornerRadius="10">
+                                    <ItemsPresenter />
+                                </Border>
+                            </Grid>
+                        </ControlTemplate>
+                    </ContextMenu.Template>
+                    <ContextMenu.ItemContainerStyle>
+                        <Style TargetType="MenuItem">
+                            <Setter Property="FontSize" Value="14" />
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="MenuItem">
+                                        <Border x:Name="Border"
+                                                Padding="16,4"
+                                                Background="{TemplateBinding Background}"
+                                                BorderThickness="1"
+                                                CornerRadius="10">
+                                            <Grid>
+                                                <ContentPresenter Margin="6"
+                                                                  HorizontalAlignment="Left"
+                                                                  VerticalAlignment="Center"
+                                                                  ContentSource="Header"
+                                                                  RecognizesAccessKey="True" />
+                                            </Grid>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsHighlighted" Value="True">
+                                                <Setter TargetName="Border" Property="Background" Value="#333" />
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </ContextMenu.ItemContainerStyle>
+                    <MenuItem Name="tary_project_page" Click="MenuItem_Click" />
+                    <MenuItem Name="tray_ver" Click="MenuItem_Click" />
+                    <MenuItem Name="tray_exit" Click="MenuItem_Click" />
+                </ContextMenu>
+            </tb:TaskbarIcon.ContextMenu>
+        </tb:TaskbarIcon>
         <Ellipse x:Name="DragBlock"
-                 Width="15"
-                 Height="15"
+                 Width="18"
+                 Height="18"
                  Margin="0,5,5,0"
                  HorizontalAlignment="Right"
                  VerticalAlignment="Top"

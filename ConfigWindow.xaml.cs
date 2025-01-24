@@ -127,6 +127,9 @@ public partial class ConfigWindow : Window
         dataGrid.Columns[2].Header = i18n[_conf.Lang]["col_nickname"];
         dataGrid.Columns[3].Header = i18n[_conf.Lang]["col_buyprice"];
         dataGrid.Columns[4].Header = i18n[_conf.Lang]["col_buycount"];
+        dataGrid.Columns[5].Header = i18n[_conf.Lang]["col_ReminderPriceUp"];
+        dataGrid.Columns[6].Header = i18n[_conf.Lang]["col_ReminderPriceDown"];
+        dataGrid.Columns[7].Header = i18n[_conf.Lang]["col_ReminderTimes"];
         foreach (var it in FieldControls.Children)
         {
             if (it is CheckBox cbx)
@@ -211,5 +214,14 @@ public partial class ConfigWindow : Window
         {
             Btn_Close_Click(null, null);
         }
+    }
+
+    public void UpdateDataGrid()
+    {
+        Application.Current.Dispatcher.Invoke(() =>
+        {
+            dataGrid.ItemsSource = null;
+            dataGrid.ItemsSource = _stocks;
+        });
     }
 }

@@ -13,6 +13,7 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using Hardcodet.Wpf.TaskbarNotification;
 using RestSharp;
 using static iNeedMyMoneyBack.Utils;
 
@@ -43,6 +44,7 @@ public partial class MainWindow : Window
     private Pdone.Updater.UI.Main g_updater;// 更新程序
     private readonly ImageSource TaskbarIcon = new BitmapImage(new Uri($"pack://application:,,,/iNeedMyMoneyBack;component/Resources/App.ico", UriKind.Absolute));
     private readonly ImageSource PageImage = new BitmapImage(new Uri($"pack://application:,,,/iNeedMyMoneyBack;component/Resources/App.png", UriKind.Absolute));
+    private readonly ImageSource TrayIconRes = new BitmapImage(new Uri($"pack://application:,,,/iNeedMyMoneyBack;component/Resources/Tray.ico", UriKind.Absolute));
 
     public class StockDetailPage
     {
@@ -88,6 +90,8 @@ public partial class MainWindow : Window
         public const string ArrowUp = "↑";
         public const string ArrowUpDown = "↕";
         public const string Wave = "↗";
+        public const string RightUp = Wave;
+        public const string RightDown = "↘";
     }
     #endregion
 
@@ -157,7 +161,10 @@ public partial class MainWindow : Window
         g_worker.DoWork += DoWork;
         g_worker.RunWorkerAsync();
         MainLabel.PreviewMouseDoubleClick += OnPreviewMouseDoubleClick_MainLabel;
-        //myNotifyIcon.IconSource = TaskbarIcon;
+        // 托盘图标
+        TrayIcon.IconSource = TrayIconRes;
+        TrayIcon.ToolTipText = $"{App.ProductName} v{App.ProductVersion}";
+        TrayIcon.TrayMouseDoubleClick += (_, __) => ShowOrHiden();
 
         // 依赖属性事件绑定
         DependencyPropertyDescriptor
@@ -224,6 +231,7 @@ public partial class MainWindow : Window
         SetMenuItemHeader(menu_data_dir, "D");
         SetMenuItemHeader(menu_show_in_taskbar, "B");
         SetMenuItemHeader(menu_data_roll, "R");
+        SetMenuItemHeader(menu_reset_reminder, "R");
         SetMenuItemHeader(menu_lang, "L");
         SetMenuItemHeader(menu_ui, "U");
         SetMenuItemHeader(menu_check_update, "U");
@@ -231,6 +239,9 @@ public partial class MainWindow : Window
         SetMenuItemHeader(menu_transparent, "A");
         menu_opacity.Header = string.Format(i18n[g_conf.Lang]["menu_opacity"], (Opacity * 100).ToString("f0"));
         menu_opacity.InputGestureText = i18n[g_conf.Lang]["menu_opacity_igt"];
+        SetMenuItemHeader(tary_project_page, "P", "menu_project_page");
+        SetMenuItemHeader(tray_ver, "C", "menu_check_update");
+        SetMenuItemHeader(tray_exit, "X", "menu_exit");
     }
     #endregion
 
@@ -374,7 +385,7 @@ public partial class MainWindow : Window
             {
                 return;
             }
-            OnMenuItemClick(menuItemName);
+            OnMenuItemClick(ContextMenu.FindMenuItem(menuItemName));
         }
     }
 
@@ -396,9 +407,12 @@ public partial class MainWindow : Window
     /// 设置菜单文本
     /// </summary>
     /// <param name="menuItem"></param>
-    private void SetMenuItemHeader(MenuItem menuItem, string shortcuts = null)
+    private void SetMenuItemHeader(MenuItem menuItem, string shortcuts = null, string tag = null)
     {
-        var tag = menuItem.Name;
+        if (tag.IsNullOrWhiteSpace())
+        {
+            tag = menuItem.Name;
+        }
         if (i18n.ContainsKey(g_conf.Lang) && i18n[g_conf.Lang].ContainsKey(tag))
         {
             if (shortcuts.IsNullOrWhiteSpace())
@@ -452,7 +466,7 @@ public partial class MainWindow : Window
     private string StockInfoHandle(ref StockConfig sc, StockInfo res)
     {
         sc.Name = res.StockName;
-        var info = sc.DiaplayName;
+        var info = sc.DisplayName;
         var makeMoney = res.CurrentPrice - sc.BuyPrice;
         sc.DayMake = res.PriceChange * sc.BuyCount;
         sc.AllMake = makeMoney * sc.BuyCount;
@@ -597,6 +611,7 @@ public partial class MainWindow : Window
             var hasUpLimit = false;
             var hasDownLimit = false;
             var content = string.Empty;// 整理后的界面文本
+            var reminder = "";// 提醒信息
             foreach (var info in res)
             {
                 var stock = g_conf_stocks_with_index.FirstOrDefault(x =>
@@ -626,7 +641,22 @@ public partial class MainWindow : Window
                 {
                     hasUpLimit = true;
                 }
+
+                if (stock.ReminderTimes > 0)
+                {
+                    if (stock.ReminderPriceUp > 0 && info.CurrentPrice >= stock.ReminderPriceUp)
+                    {
+                        reminder += $"{stock.DisplayName} {Symbols.RightUp} {stock.ReminderPriceUp:f2}{Environment.NewLine}";
+                        stock.ReminderTimes--;
+                    }
+                    else if (stock.ReminderPriceDown > 0 && info.CurrentPrice <= stock.ReminderPriceDown)
+                    {
+                        reminder += $"{stock.DisplayName} {Symbols.RightDown} {stock.ReminderPriceDown:f2}{Environment.NewLine}";
+                        stock.ReminderTimes--;
+                    }
+                }
             }
+
             var allyield = 0.0;
             var allyield_day = 0.0;
             if (allcost != 0.0)
@@ -680,6 +710,12 @@ public partial class MainWindow : Window
                 }
             }
             UpdateUI(content, status);
+            if (reminder.IsNullOrWhiteSpace() == false)
+            {
+                TrayIcon.ShowBalloonTip("", reminder.TrimEnd(), BalloonIcon.None);
+                g_conf.LastReminderTime = DateTime.Now;
+                g_configWindow?.UpdateDataGrid();
+            }
         }
     }
 
@@ -882,7 +918,8 @@ public partial class MainWindow : Window
     {
         if (sender is MenuItem item)
         {
-            OnMenuItemClick(item.Name);
+            // OnMenuItemClick(item.Name);
+            OnMenuItemClick(item);
         }
     }
 
@@ -961,6 +998,94 @@ public partial class MainWindow : Window
                 break;
         }
     }
+
+    public void OnMenuItemClick(MenuItem item)
+    {
+        var menuItemName = item.Name;
+        switch (menuItemName)
+        {
+            case "menu_exit" or "tray_exit":
+                Close();
+                break;
+            case "menu_hide_border":
+                g_conf.HideBorder = !g_conf.HideBorder;
+                item.IsChecked = g_conf.HideBorder;
+                var tkns = new Thickness(g_conf.HideBorder ? 0 : 1);
+                Resources["BorderThickness"] = tkns;
+                border.BorderThickness = tkns;
+                g_configWindow?.InitBorderThickess(g_conf.HideBorder);
+                break;
+            case "menu_dark":
+                g_conf.DarkMode = !g_conf.DarkMode;
+                item.IsChecked = g_conf.DarkMode;
+                InitColor();
+                g_configWindow?.InitColor();
+                break;
+            case "menu_topmost":
+                g_conf.Topmost = !g_conf.Topmost;
+                item.IsChecked = g_conf.Topmost;
+                Topmost = g_conf.Topmost;
+                BorderTwinkle(g_conf.Topmost);
+                break;
+            case "menu_conf":
+                MakeConfigWindow();
+                break;
+            case "menu_conf_file":
+                var fullPath = Path.Combine(UserDataPath, "config.json");
+                Process.Start(fullPath);
+                break;
+            case "menu_data_dir":
+                Process.Start(UserDataPath);
+                break;
+            case "menu_show_in_taskbar":
+                g_conf.ShowInTaskbar = !g_conf.ShowInTaskbar;
+                item.IsChecked = g_conf.ShowInTaskbar;
+                ShowInTaskbar = g_conf.ShowInTaskbar;
+                BorderTwinkle(g_conf.ShowInTaskbar);
+                break;
+            case "menu_data_roll":
+                g_conf.DataRoll = !g_conf.DataRoll;
+                item.IsChecked = g_conf.DataRoll;
+                DataUpdate();
+                BorderTwinkle(g_conf.DataRoll);
+                break;
+            case "menu_lang":
+                g_conf.Lang = g_conf.Lang == "cn" ? "en" : "cn";
+                InitLang();
+                DataUpdate();
+                g_configWindow?.InitLang();
+                break;
+            case "menu_debug_mode":
+                g_conf.Debug = !g_conf.Debug;
+                item.IsChecked = g_conf.Debug;
+                DataUpdate();
+                BorderTwinkle(g_conf.Debug);
+                break;
+            case "menu_check_update" or "tray_ver":
+                MakeUpdater();
+                break;
+            case "menu_transparent":
+                g_conf.Transparent = !g_conf.Transparent;
+                item.IsChecked = g_conf.Transparent;
+                border.Background = g_conf.Transparent ? color_transparent : color_bg;
+                DragBlock.Visibility = g_conf.Transparent ? Visibility.Visible : Visibility.Collapsed;
+                BorderTwinkle(g_conf.Transparent);
+                break;
+            case "menu_reset_reminder" or "tray_reset_reminder":
+                g_conf_stocks.ForEach(x =>
+                {
+                    x.ReminderTimes = 1;
+                });
+                g_configWindow?.UpdateDataGrid();
+                break;
+            case "tary_project_page":
+                Process.Start($"https://github.com/pdone/{App.ProductName}");
+                break;
+            default:
+                MessageBox.Show(this, "Nothing happened...", i18n[g_conf.Lang]["ui_title_tip"]);
+                break;
+        }
+    }
     #endregion
 
     #region 边框闪烁
@@ -1030,23 +1155,27 @@ public partial class MainWindow : Window
             var hotKeyId = wparam.ToInt32();
             if (hotKeyId == HotKeys.MainShow)
             {
-                if (Visibility == Visibility.Visible)
-                {
-                    Hide();
-                    g_configWindow?.Hide();
-                }
-                else
-                {
-                    Show();
-                    if (ConfigWindowShow)
-                    {
-                        MakeConfigWindow();
-                    }
-                }
+                ShowOrHiden();
             }
         }
-
         return IntPtr.Zero;
+    }
+
+    private void ShowOrHiden()
+    {
+        if (Visibility == Visibility.Visible)
+        {
+            Hide();
+            g_configWindow?.Hide();
+        }
+        else
+        {
+            Show();
+            if (ConfigWindowShow)
+            {
+                MakeConfigWindow();
+            }
+        }
     }
     #endregion
 }
