@@ -1,0 +1,13 @@
+﻿<Application x:Class="iNeedMyMoneyBack.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:iNeedMyMoneyBack"
+             StartupUri="MainWindow.xaml">
+    <Application.Resources>
+        <ResourceDictionary>
+            <FontFamily x:Key="FontMain">Cascadia Mono,阿里巴巴普惠体 3.0,Courier New,Consolas,Microsoft Yahei UI,Arial</FontFamily>
+            <FontFamily x:Key="FontConfig">阿里巴巴普惠体 3.0,Microsoft Yahei UI,Arial</FontFamily>
+            <FontFamily x:Key="FontMenu">阿里巴巴普惠体 3.0,Microsoft Yahei UI,Arial</FontFamily>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

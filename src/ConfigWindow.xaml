@@ -1,0 +1,142 @@
+﻿<Window x:Class="iNeedMyMoneyBack.ConfigWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:local="clr-namespace:iNeedMyMoneyBack"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        Title="ConfigWindow"
+        Width="270"
+        Height="230"
+        MinWidth="270"
+        MinHeight="155"
+        AllowsTransparency="True"
+        Background="Transparent"
+        FontFamily="{DynamicResource FontConfig}"
+        KeyDown="Window_KeyDown"
+        OpacityMask="White"
+        ResizeMode="CanResizeWithGrip"
+        WindowStyle="None"
+        mc:Ignorable="d">
+    <Window.Resources>
+        <SolidColorBrush x:Key="TextColor" />
+        <SolidColorBrush x:Key="CheckedColor" />
+        <Thickness x:Key="BorderThickness" />
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource TextColor}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="#000"
+                                BorderThickness="{DynamicResource BorderThickness}"
+                                CornerRadius="8">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="#666" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style TargetType="CheckBox">
+            <Setter Property="Margin" Value="2,2" />
+            <Setter Property="Foreground" Value="{DynamicResource TextColor}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CheckBox">
+                        <Grid>
+                            <Border x:Name="border"
+                                    Padding="4"
+                                    Background="Transparent"
+                                    BorderBrush="Black"
+                                    BorderThickness="{DynamicResource BorderThickness}"
+                                    CornerRadius="8">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="#666" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource CheckedColor}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style TargetType="WrapPanel">
+            <Setter Property="Orientation" Value="Horizontal" />
+            <Setter Property="Margin" Value="5" />
+        </Style>
+    </Window.Resources>
+    <Grid x:Name="grid" Background="Transparent">
+        <Border Name="border"
+                BorderBrush="#000"
+                BorderThickness="{DynamicResource BorderThickness}"
+                CornerRadius="0,10,0,10">
+            <StackPanel Margin="0,10,0,30" Orientation="Vertical">
+                <DataGrid x:Name="dataGrid"
+                          MinHeight="100"
+                          AutoGenerateColumns="False"
+                          HeadersVisibility="Column"
+                          ScrollViewer.HorizontalScrollBarVisibility="Hidden"
+                          ScrollViewer.VerticalScrollBarVisibility="Hidden"
+                          SelectionUnit="FullRow">
+                    <DataGrid.Style>
+                        <Style TargetType="DataGrid">
+                            <Setter Property="BorderThickness" Value="0" />
+                        </Style>
+                    </DataGrid.Style>
+                    <DataGrid.ColumnHeaderStyle>
+                        <Style TargetType="DataGridColumnHeader">
+                            <Setter Property="BorderThickness" Value="0,0,0,1" />
+                            <Setter Property="HorizontalContentAlignment" Value="Center" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextColor}" />
+                            <Setter Property="Background" Value="Transparent" />
+                            <Setter Property="BorderBrush" Value="#000" />
+                        </Style>
+                    </DataGrid.ColumnHeaderStyle>
+                    <DataGrid.CellStyle>
+                        <Style TargetType="DataGridCell" />
+                    </DataGrid.CellStyle>
+                    <DataGrid.RowStyle>
+                        <Style TargetType="DataGridRow">
+                            <Setter Property="Background" Value="Transparent" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextColor}" />
+                        </Style>
+                    </DataGrid.RowStyle>
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Binding="{Binding Code, UpdateSourceTrigger=PropertyChanged}" Header="Code" />
+                        <DataGridTextColumn Binding="{Binding Name}"
+                                            Header="Name"
+                                            IsReadOnly="True" />
+                        <DataGridTextColumn Binding="{Binding NickName}" Header="NickName" />
+                        <DataGridTextColumn Binding="{Binding BuyPrice}" Header="BuyPrice" />
+                        <DataGridTextColumn Binding="{Binding BuyCount}" Header="BuyCount" />
+                        <DataGridTextColumn Binding="{Binding ReminderPriceUp}" Header="ReminderPriceUp" />
+                        <DataGridTextColumn Binding="{Binding ReminderPriceDown}" Header="ReminderPriceDown" />
+                        <DataGridTextColumn Binding="{Binding ReminderTimes}" Header="ReminderTimes" />
+                    </DataGrid.Columns>
+                </DataGrid>
+                <WrapPanel x:Name="FieldControls" />
+                <WrapPanel x:Name="StockIndexControls" />
+                <WrapPanel x:Name="ExtendControls" />
+            </StackPanel>
+        </Border>
+        <Button x:Name="btn_close"
+                Width="40"
+                Height="20"
+                Margin="5,0,0,5"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Bottom"
+                Click="Btn_Close_Click"
+                Content="Close" />
+    </Grid>
+</Window>
