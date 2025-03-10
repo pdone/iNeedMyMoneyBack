@@ -8,11 +8,9 @@
 [![](https://img.shields.io/github/stars/pdone/iNeedMyMoneyBack?style=for-the-badge)](https://github.com/pdone/iNeedMyMoneyBack/stargazers)
 [![](https://img.shields.io/github/issues/pdone/iNeedMyMoneyBack?style=for-the-badge)](https://github.com/pdone/iNeedMyMoneyBack/issues)
 
+一个监控股票的工具
+
 </div>
-
-## 简介
-
-一个监控股票的工具。
 
 ## 使用说明
 
@@ -81,28 +79,20 @@ https://qt.gtimg.cn/
 你也可以在配置文件中修改对应模块的字体，自行测试对齐效果。
 
 ```
+{
+  ...
   "FontFamilyMain": "Courier New,Consolas,Microsoft Yahei UI,Arial",// 主页面
   "FontFamilyConfig": "阿里巴巴普惠体 3.0,Microsoft YaHei UI,Arial",// 配置页面
   "FontFamilyMenu": "阿里巴巴普惠体 3.0,Microsoft YaHei UI,Arial",// 右键菜单页面
+  ...
+}
 ```
 
-> [!tip]
-> 配置文件路径 `%AppData%\iNeedMyMoneyBack\config.json`
-
-<details>
-<summary>已过时</summary>
-
-~~安装 [fonts](/fonts/) 文件夹中的**等宽字体**，并且**设置别名**，确保**别名长度一致**，可以让数据对齐显示。~~
-
-> ~~也可以到字体官方网站下载 [阿里巴巴普惠体](https://www.alibabafonts.com/#/font)、[Cascadia Code](https://github.com/microsoft/cascadia-code)~~
-
-~~股票名称（别名）不会动态对齐，其他列根据实时数据长度动态对齐。~~
-
-</details>
-
-### 程序日志和配置文件路径
-
-`%AppData%/iNeedMyMoneyBack`
+> [!note]
+> 程序日志和配置文件目录
+> ```
+> %AppData%/iNeedMyMoneyBack
+> ```
 
 ### 问题反馈
 
