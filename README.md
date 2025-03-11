@@ -23,8 +23,10 @@
 - 勾选 `数据滚动显示` 时，始终只显示一条数据，按配置列表滚动显示。
 - 未勾选 `数据滚动显示` 时，将显示所有配置中的数据。
 - 界面右下角处，可以拖动来改变大小。
-- ~~建议安装 fonts 文件夹中的两个字体，以达到最佳显示效果。~~
 - 双击数据行，可跳转到当前股票的详情页。
+
+> [!tip]
+> 本文档中的图片可能更新不及时，与最新版本界面不一致，请以最新版为准
 
 ### 右键菜单
 
@@ -33,26 +35,6 @@
 
 - 菜单项中显示的快捷键都是程序快捷键，仅焦点在本程序界面时有效。
 - **程序内置了一个全局快捷键 `Ctrl + ~` ，用于显示或隐藏主界面。**
-
-> 截图中可能不是最新界面，请以最新版本为准。
-
-### 托盘图标和菜单
-
-![](assets/inmmb_tray.png)
-
-### 检查更新
-
-![](assets/inmmb_update.png)
-
-- 前往发布页按钮，点击后跳转到最新版Github Release发布页面。
-- 下载按钮，点击后跳转到Github Latest版本原始下载链接。
-
-#### Pdone.Updater
-
-检查更新功能是我另一个开源项目，一个专为Github开源项目设计的更新器，可以前往项目主页查看和使用，非C#项目也可以轻松集成使用。
-
-- 代码仓库 [Pdone.Updater](https://github.com/pdone/Pdone.Updater/tree/main/Pdone.Updater.UI)
-- nuget包 [Pdone.Updater.UI](https://www.nuget.org/packages/Pdone.Updater.UI)
 
 ### 添加和删除
 
@@ -78,7 +60,19 @@
 
 ![](assets/inmmb_balloon_tip.png)
 
-### 在线更新
+### 托盘图标和菜单
+
+![](assets/inmmb_tray.png)
+
+### 检查更新
+
+![](assets/inmmb_update.png)
+
+- 前往发布页按钮，点击后跳转到最新版Github Release发布页面。
+- 下载按钮，点击后跳转到Github Latest版本原始下载链接。
+
+> [!note]
+> 检查更新功能是我另一个开源项目 [Pdone.Updater](https://github.com/pdone/Pdone.Updater/)，一个专为Github开源项目设计的更新器，可以前往项目主页查看和使用，非C#项目也可以轻松集成使用。
 
 ## 下载
 
@@ -96,7 +90,7 @@ https://qt.gtimg.cn/
 
 股票名称（别名）需要勾选 `名称对齐`，其他列自动根据实时数据长度动态对齐。
 
-由于 [fonts](/fonts/) 中的两个字体都不支持显示全角空格，故修改默认字体为 `Courier New` 以支持中英文字符混合对齐。
+由于 [fonts](/fonts/) 中的两个字体都不支持显示全角空格，故修改默认字体为 `Courier New` 以支持中英文字符混合对齐。其他支持CJK的字体应该也可以。
 
 你也可以在配置文件中修改对应模块的字体，自行测试对齐效果。
 
