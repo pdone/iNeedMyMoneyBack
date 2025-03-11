@@ -34,6 +34,26 @@
 - 菜单项中显示的快捷键都是程序快捷键，仅焦点在本程序界面时有效。
 - **程序内置了一个全局快捷键 `Ctrl + ~` ，用于显示或隐藏主界面。**
 
+> 截图中可能不是最新界面，请以最新版本为准。
+
+### 托盘图标和菜单
+
+![](assets/inmmb_tray.png)
+
+### 检查更新
+
+![](assets/inmmb_update.png)
+
+- 前往发布页按钮，点击后跳转到最新版Github Release发布页面。
+- 下载按钮，点击后跳转到Github Latest版本原始下载链接。
+
+#### Pdone.Updater
+
+检查更新功能是我另一个开源项目，一个专为Github开源项目设计的更新器，可以前往项目主页查看和使用，非C#项目也可以轻松集成使用。
+
+- 代码仓库 [Pdone.Updater](https://github.com/pdone/Pdone.Updater/tree/main/Pdone.Updater.UI)
+- nuget包 [Pdone.Updater.UI](https://www.nuget.org/packages/Pdone.Updater.UI)
+
 ### 添加和删除
 
 ![](assets/inmmb_add.gif)
@@ -57,6 +77,8 @@
 需要在配置页面配置高于或低于的目标价格，默认只提醒一次，不建议手动修改剩余次数，建议使用右键菜单中的 `重置提醒次数`，会将所有股票的剩余提醒次数都改为1。
 
 ![](assets/inmmb_balloon_tip.png)
+
+### 在线更新
 
 ## 下载
 

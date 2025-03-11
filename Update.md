@@ -8,13 +8,15 @@
 [![](https://img.shields.io/github/stars/pdone/iNeedMyMoneyBack?style=for-the-badge)](https://github.com/pdone/iNeedMyMoneyBack/stargazers)
 [![](https://img.shields.io/github/issues/pdone/iNeedMyMoneyBack?style=for-the-badge)](https://github.com/pdone/iNeedMyMoneyBack/issues)
 
+一个监控股票的工具
+
 </div>
 
 ## 更新日志
 
 ### 版本 1.4
 
-- 增加 `名称对齐`
+- 增加 名称对齐（勾选 `名称对齐` 时，会在所有名称后填充全角空格和半角空格，可能导致名称后的空白会显得比较多，这由于大部分字体的中英文字符宽度不是1比2，想实现完全对齐就要保证每一个名称里的中英文字符数量一致）
 
 ### 版本 1.3
 
