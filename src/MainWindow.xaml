@@ -166,9 +166,6 @@
                       InputGestureText="Ctrl+R"
                       StaysOpenOnClick="True" />
             <MenuItem Name="menu_reset_reminder" Click="MenuItem_Click" />
-            <MenuItem Name="menu_name_align"
-                      Click="MenuItem_Click"
-                      StaysOpenOnClick="True" />
             <MenuItem Name="menu_ui">
                 <MenuItem Name="menu_opacity" StaysOpenOnClick="True" />
                 <MenuItem Name="menu_lang"
@@ -258,6 +255,7 @@
             </tb:TaskbarIcon.ContextMenu>
         </tb:TaskbarIcon>
         <Ellipse x:Name="DragBlock"
+                 Cursor="SizeAll"
                  Width="18"
                  Height="18"
                  Margin="0,5,5,0"
@@ -274,7 +272,17 @@
             <Label Name="MainLabel"
                    Padding="6,1"
                    FontSize="16">
-                <TextBlock Name="MainTextBlock" />
+                <Grid>
+                    <TextBlock Name="MainTextBlock" />
+                    <ScrollViewer Name="MainScrollViewer"
+                                  VerticalScrollBarVisibility="Hidden"
+                                  VerticalAlignment="Top"
+                                  Visibility="Visible">
+                        <Grid Name="MainGrid"
+                              HorizontalAlignment="Stretch"
+                              VerticalAlignment="Stretch" />
+                    </ScrollViewer>
+                </Grid>
             </Label>
         </Border>
     </Grid>

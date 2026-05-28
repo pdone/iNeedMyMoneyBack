@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows;
 using iNeedMyMoneyBack;
 
+[assembly: InternalsVisibleTo("iNeedMyMoneyBack.Tests")]
 [assembly: AssemblyTitle(App.ProductName)]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
@@ -32,7 +34,7 @@ public partial class App : Application
     public const string ProductName = "iNeedMyMoneyBack";
     public const string ProductFileName = ProductName + ".exe";
     public const string ProductCompany = "Pdone Technology Ltd.";
-    public const string ProductVersion = "1.4";
+    public const string ProductVersion = "2.0";
     public const string Copyright = "Copyright © pdone 2025";
 
     #region 检查实例是否已存在 存在则将其显示到前台

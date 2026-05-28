@@ -152,7 +152,6 @@ public static class Utils
         ["menu_data_dir"] = ["Open Data Dir", "打开数据目录"],
         ["menu_show_in_taskbar"] = ["Show in Taskbar", "在任务栏显示"],
         ["menu_data_roll"] = ["Data Roll", "数据滚动显示"],
-        ["menu_name_align"] = ["Name Align", "名称对齐"],
         ["menu_ui"] = ["UI Option", "界面选项"],
         ["menu_dev"] = ["Dev Option", "开发者选项"],
         ["menu_lang"] = ["UI Chinese", "英文界面"],
@@ -211,6 +210,15 @@ public static class Utils
         [StockIndexPrefix + "sz399006"] = ["CYBZ", "创业板指"],
         [StockIndexPrefix + "sz399300"] = ["HS300", "沪深300"],
         [StockIndexPrefix + "bj899050"] = ["BZ50", "北证50"],
+        [StockIndexPrefix + "sh000905"] = ["ZZ500", "中证500"],
+        [StockIndexPrefix + "sh000852"] = ["ZZ1000", "中证1000"],
+        [StockIndexPrefix + "usNDX"] = ["NDX100", "纳指100"],
+        [StockIndexPrefix + "usDJI"] = ["DJI", "道琼斯"],
+        [StockIndexPrefix + "hkHSI"] = ["HSI", "恒生指数"],
+        [StockIndexPrefix + "hkHSCEI"] = ["HSCEI", "国企指数"],
+        [StockIndexPrefix + "hkHSCCI"] = ["HSCCI", "红筹指数"],
+        [StockIndexPrefix + "sh000688"] = ["KC50", "科创50"],
+        [StockIndexPrefix + "sh000016"] = ["SZ50", "上证50"],
 
         ["ui_all_stock_day_make"] = ["AllStockDayMake", "总持日盈"],
         ["ui_all_stock_all_make"] = ["AllStockAllMake", "总持总盈"],
@@ -222,6 +230,29 @@ public static class Utils
         ["ui_yesterday_todayopen"] = ["LastClose TodayOpen", "昨收今开"],
         ["ui_lowest_highest"] = ["Lowest Highest", "最低最高"],
         ["ui_limitup_limitdown"] = ["UpLimit DownLimit", "涨停跌停"],
+
+        ["tab_stocks"] = ["Stocks", "股票管理"],
+        ["tab_fields"] = ["Fields", "显示字段"],
+        ["lbl_basic_fields"] = ["Basic Fields", "基础字段"],
+        ["lbl_index_fields"] = ["Index Monitor", "指数监控"],
+        ["lbl_extend_fields"] = ["Extend Fields", "扩展字段"],
+        ["lbl_index_a"] = ["A-Share Index", "A股指数"],
+        ["lbl_index_hk"] = ["HK Index", "港股指数"],
+        ["lbl_index_us"] = ["US Index", "美股指数"],
+        ["btn_add_stock"] = ["Add", "添加"],
+        ["btn_edit"] = ["Edit", "编辑"],
+        ["btn_delete"] = ["Delete", "删除"],
+        ["btn_ok"] = ["OK", "确定"],
+        ["btn_cancel"] = ["Cancel", "取消"],
+        ["btn_reset_default"] = ["Reset", "重置默认"],
+        ["txt_stock_code_tip"] = ["Enter stock code (e.g. sh600519, usAAPL, hk00700)", "输入股票代码（如 sh600519、usAAPL、hk00700）"],
+        ["ui_title_confirm"] = ["Confirm", "确认"],
+        ["msg_index_not_support_add"] = ["Index cannot be added as stock, please enable in Index tab", "股指暂不支持添加，请在指数监控 Tab 中启用"],
+        ["msg_exchange_not_support"] = ["Only supports {0} prefix (Shanghai, Shenzhen, Beijing, US, Hong Kong)", "目前只支持 {0} 开头，分别代表上海、深圳、北京、美股、港股"],
+        ["msg_stock_exists"] = ["Stock already exists", "股票已存在"],
+        ["msg_stock_not_found"] = ["No data found, please check if the stock code is correct", "未查询到数据，请检查代码是否正确"],
+        ["msg_confirm_delete"] = ["Delete {0}?", "确定删除 {0}？"],
+        ["msg_confirm_reset"] = ["Reset all display fields to default?", "重置所有显示字段为默认？"],
     };
 
     private static Dictionary<string, Dictionary<string, string>> _i18n = null;
@@ -262,6 +293,16 @@ public static class Utils
     public const int WM_SYSCOMMAND = 0x0112;
     public const int SC_MOVE = 0xF010;
     public const int HTCAPTION = 0x0002;
+
+    [DllImport("dwmapi.dll")]
+    private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
+    private const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
+
+    public static void SetWindowDarkMode(IntPtr hwnd, bool isDark)
+    {
+        int value = isDark ? 1 : 0;
+        DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, ref value, sizeof(int));
+    }
 
     /// <summary>
     /// 拖动窗体

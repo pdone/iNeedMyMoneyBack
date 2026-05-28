@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
 using System.Windows;
@@ -35,6 +36,7 @@ public partial class MainWindow : Window
     private static List<StockInfo> g_last_res_set = [];// 上一次请求响应
     private RestClient g_client;
     private static int g_codeIndex = 0;
+    private static readonly object g_dataLock = new();// 共享数据锁
     private readonly BackgroundWorker g_worker = new()
     {
         WorkerSupportsCancellation = true,
@@ -45,6 +47,15 @@ public partial class MainWindow : Window
     private readonly ImageSource TaskbarIcon = new BitmapImage(new Uri($"pack://application:,,,/iNeedMyMoneyBack;component/Resources/App.ico", UriKind.Absolute));
     private readonly ImageSource PageImage = new BitmapImage(new Uri($"pack://application:,,,/iNeedMyMoneyBack;component/Resources/App.png", UriKind.Absolute));
     private readonly ImageSource TrayIconRes = new BitmapImage(new Uri($"pack://application:,,,/iNeedMyMoneyBack;component/Resources/Tray.ico", UriKind.Absolute));
+
+    // Grid 结构缓存
+    private bool _gridStructureDirty = true; // 标志位：Grid 结构是否需要重建
+    private List<TextBlock> _headerTextBlocks = []; // 表头 TextBlock 缓存
+    private List<List<TextBlock>> _dataTextBlocks = []; // 数据 TextBlock 缓存
+    private TextBlock _extendTextBlock; // 扩展字段 TextBlock 缓存
+    private int _cachedColumnCount; // 缓存的列数
+    private int _cachedRowCount; // 缓存的行数
+    private bool _cachedShowFieldName; // 缓存的表头显示状态
 
     public class StockDetailPage
     {
@@ -146,7 +157,6 @@ public partial class MainWindow : Window
         menu_debug_mode.IsChecked = g_conf.Debug;
         menu_hide_border.IsChecked = g_conf.HideBorder;
         menu_transparent.IsChecked = g_conf.Transparent;
-        menu_name_align.IsChecked = g_conf.NameAlign;
         DragBlock.Visibility = g_conf.Transparent ? Visibility.Visible : Visibility.Collapsed;
 
         Resources["BorderThickness"] = new Thickness(g_conf.HideBorder ? 0 : 1);
@@ -216,6 +226,15 @@ public partial class MainWindow : Window
         Resources["TextColor"] = color_fg;
         Resources["SubMenuBackground"] = color_bg;
 
+        // 更新 Grid 中所有 TextBlock 的前景色
+        foreach (var child in MainGrid.Children)
+        {
+            if (child is TextBlock textBlock)
+            {
+                textBlock.Foreground = color_fg;
+            }
+        }
+
         var tempSubMenuMask = new SolidColorBrush
         {
             Color = color_bg.Color,
@@ -256,7 +275,6 @@ public partial class MainWindow : Window
         SetMenuItemHeader(tary_project_page, "P", "menu_project_page");
         SetMenuItemHeader(tray_ver, "C", "menu_check_update");
         SetMenuItemHeader(tray_exit, "X", "menu_exit");
-        SetMenuItemHeader(menu_name_align, "N");
     }
     #endregion
 
@@ -448,7 +466,7 @@ public partial class MainWindow : Window
         var fieldName = $"{newline}{i18n[g_conf.Lang]["ui_name"]}";
         foreach (var kvp in g_conf.FieldControls)
         {
-            if (!kvp.Value)// 启用字段
+            if (!kvp.Value || kvp.Key == "ui_fieldname")
             {
                 continue;
             }
@@ -465,6 +483,88 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
+    /// 获取字段表头名称列表（用于 Grid 列头）
+    /// </summary>
+    private List<string> GetFieldNames()
+    {
+        var names = new List<string> { i18n[g_conf.Lang]["ui_name"] };
+        foreach (var kvp in g_conf.FieldControls)
+        {
+            if (!kvp.Value || kvp.Key == "ui_fieldname")
+            {
+                continue;
+            }
+            var name = kvp.Key switch
+            {
+                "ui_yesterday_todayopen" => $"{i18n[g_conf.Lang]["ui_yesterday"]}{Symbols.ArrowRight}{i18n[g_conf.Lang]["ui_todayopen"]}",
+                "ui_lowest_highest" => $"{i18n[g_conf.Lang]["ui_lowest"]}{Symbols.ArrowUpDown}{i18n[g_conf.Lang]["ui_highest"]}",
+                "ui_limitup_limitdown" => $"{i18n[g_conf.Lang]["ui_limitdown"]}{Symbols.Wave}{i18n[g_conf.Lang]["ui_limitup"]}",
+                _ => i18n[g_conf.Lang][kvp.Key]
+            };
+            names.Add(name);
+        }
+        return names;
+    }
+
+    /// <summary>
+    /// 获取股票字段值列表（用于 Grid 显示）
+    /// </summary>
+    /// <param name="sc">股票配置</param>
+    /// <param name="res">股票数据</param>
+    /// <returns>字段值列表（包含名称和各字段值）</returns>
+    private List<FieldValue> GetFieldValues(ref StockConfig sc, StockInfo res)
+    {
+        sc.Name = res.StockName;
+        var fields = new List<FieldValue>
+        {
+            new("ui_name", sc.DisplayName, FieldAlignment.Left)
+        };
+
+        var makeMoney = res.CurrentPrice - sc.BuyPrice;
+        sc.DayMake = res.PriceChange * sc.BuyCount;
+        sc.AllMake = makeMoney * sc.BuyCount;
+        sc.Cost = sc.BuyPrice * sc.BuyCount;
+        sc.MarketValue = sc.Cost + sc.AllMake;
+        var hold = sc.BuyCount > 0;
+        if (hold)
+        {
+            sc.Yield = sc.AllMake / sc.Cost * 100;
+        }
+
+        foreach (var kvp in g_conf.FieldControls)
+        {
+            if (!kvp.Value || kvp.Key == "ui_fieldname")
+            {
+                continue;
+            }
+            var dot = res.StockName.EndsWith("ETF") ? "f3" : "f2";
+            var alignment = kvp.Key switch
+            {
+                "ui_yesterday_todayopen" or "ui_lowest_highest" or "ui_limitup_limitdown" => FieldAlignment.Center,
+                _ => FieldAlignment.Right
+            };
+            var fieldData = kvp.Key switch
+            {
+                "ui_price" => res.CurrentPrice.ToString(dot),
+                "ui_change" => $"{res.PriceChangePercent:f2}%",
+                "ui_buy_price" => hold ? $"{sc.BuyPrice:f2}" : "",
+                "ui_num" => hold ? $"{sc.BuyCount}" : "",
+                "ui_cost" => hold ? $"{sc.Cost:f0}" : "",
+                "ui_market_value" => hold ? $"{sc.MarketValue:f0}" : "",
+                "ui_yield" => hold ? $"{sc.Yield:f2}%" : "",
+                "ui_day_make" => hold ? $"{sc.DayMake:f0}" : "",
+                "ui_all_make" => hold ? $"{sc.AllMake:f0}" : "",
+                "ui_yesterday_todayopen" => $"{res.YesterdayClose.ToString(dot)}{Symbols.ArrowRight}{res.TodayOpen.ToString(dot)}",
+                "ui_lowest_highest" => $"{res.LowestPrice.ToString(dot)}{Symbols.ArrowUpDown}{res.HighestPrice.ToString(dot)}",
+                "ui_limitup_limitdown" => res.PriceLimitDown != res.PriceLimitUp ? $"{res.PriceLimitDown.ToString(dot)}{Symbols.Wave}{res.PriceLimitUp.ToString(dot)}" : "",
+                _ => ""
+            };
+            fields.Add(new FieldValue(kvp.Key, fieldData, alignment));
+        }
+        return fields;
+    }
+
+    /// <summary>
     /// 数据对齐需要填充的长度
     /// </summary>
     private readonly Dictionary<string, int> PadLengths = [];
@@ -472,11 +572,6 @@ public partial class MainWindow : Window
     /// 字段数据
     /// </summary>
     private readonly Dictionary<string, string> FieldDatas = [];
-    /// <summary>
-    /// 名称对齐填充长度
-    /// </summary>
-    private int NamePadLengthEN = 0;
-    private int NamePadLengthCN = 0;
     /// <summary>
     /// 整理数据
     /// </summary>
@@ -487,26 +582,6 @@ public partial class MainWindow : Window
     {
         sc.Name = res.StockName;
         var info = sc.DisplayName;
-        if (g_conf.NameAlign)
-        {
-            sc.DisplayName.GetCharCount(out var en, out var cn);
-            NamePadLengthEN = Math.Max(NamePadLengthEN, en);
-            NamePadLengthCN = Math.Max(NamePadLengthCN, cn);
-            if (en < NamePadLengthEN)
-            {
-                for (var i = 0; i < NamePadLengthEN - en; i++)
-                {
-                    info += " ";
-                }
-            }
-            if (cn < NamePadLengthCN)
-            {
-                for (var i = 0; i < NamePadLengthCN - cn; i++)
-                {
-                    info += "\u3000";
-                }
-            }
-        }
         var makeMoney = res.CurrentPrice - sc.BuyPrice;
         sc.DayMake = res.PriceChange * sc.BuyCount;
         sc.AllMake = makeMoney * sc.BuyCount;
@@ -527,6 +602,7 @@ public partial class MainWindow : Window
             var dot = res.StockName.EndsWith("ETF") ? "f3" : "f2";
             var fieldData = kvp.Key switch
             {
+                //"ui_fieldname" => "",
                 "ui_price" => res.CurrentPrice.ToString(dot),
                 "ui_change" => $"{res.PriceChangePercent:f2}%",
                 "ui_buy_price" => hold ? $"{sc.BuyPrice:f2}" : "",
@@ -576,7 +652,14 @@ public partial class MainWindow : Window
     {
         while (true)
         {
-            DataUpdate(false);
+            try
+            {
+                DataUpdate(false).GetAwaiter().GetResult();
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex);
+            }
             Delay();// 请求间隔最低 2s
         }
     }
@@ -587,11 +670,12 @@ public partial class MainWindow : Window
     /// 更新界面显示内容
     /// </summary>
     /// <param name="useCache">是否使用上一次请求响应数据</param>
-    public async void DataUpdate(bool useCache = true)
+    public async Task DataUpdate(bool useCache = true)
     {
         var isTradingTime = IsTradingTime();
         if (!isTradingTime && !g_conf.Debug)// 非交易时间
         {
+            SwitchToTextMode();
             UpdateUI(i18n[g_conf.Lang]["ui_nontrading"]);
             if (!useCache)// 不使用缓存时 计时器定时请求 在非交易时间时需要延迟30秒
             {
@@ -602,17 +686,23 @@ public partial class MainWindow : Window
 
         if (g_conf.DataRoll)// 单行数据滚动展示
         {
-            if (g_codeIndex > g_conf_stocks.Count - 1)
+            int currentIndex;
+            lock (g_dataLock)
             {
-                g_codeIndex = 0;
-                Delay();
-                return;
+                if (g_codeIndex > g_conf_stocks.Count - 1)
+                {
+                    g_codeIndex = 0;
+                    Delay();
+                    return;
+                }
+                currentIndex = g_codeIndex;
             }
 
-            var stock = g_conf_stocks.ElementAt(g_codeIndex);
+            var stock = g_conf_stocks.ElementAt(currentIndex);
             var res = await Request(stock, useCache);
             if (res == null)
             {
+                SwitchToTextMode();
                 UpdateUI(i18n[g_conf.Lang]["ui_getdatafialed"], UIStatus.ProgramError);
                 Delay(10000);
                 return;
@@ -623,16 +713,20 @@ public partial class MainWindow : Window
             {
                 status = UIStatus.UpLimit;
             }
-            else if (res.CurrentPrice <= -AlertValue)
+            else if (res.PriceChangePercent <= -AlertValue)
             {
                 status = UIStatus.DownLimit;
             }
+            SwitchToTextMode();
             UpdateUI(text, status);
 
-            g_codeIndex++;
-            if (g_conf_stocks.Count < g_codeIndex + 1)
+            lock (g_dataLock)
             {
-                g_codeIndex = 0;
+                g_codeIndex++;
+                if (g_conf_stocks.Count < g_codeIndex + 1)
+                {
+                    g_codeIndex = 0;
+                }
             }
         }
         else// 多行数据同步展示
@@ -640,6 +734,7 @@ public partial class MainWindow : Window
             var res = await Request(g_conf_stocks_with_index, useCache);
             if (res == null || res.Count == 0)
             {
+                SwitchToTextMode();
                 UpdateUI(i18n[g_conf.Lang]["ui_getdatafialed"], UIStatus.ProgramError);
                 Delay(10000);
                 return;
@@ -650,14 +745,14 @@ public partial class MainWindow : Window
             var allmarketvalue = 0.0;// 总市值
             var hasUpLimit = false;
             var hasDownLimit = false;
-            var content = string.Empty;// 整理后的界面文本
+            var allStocksData = new List<List<FieldValue>>();// 所有股票的字段数据
             var reminder = "";// 提醒信息
             foreach (var info in res)
             {
                 var stock = g_conf_stocks_with_index.FirstOrDefault(x =>
                 {
-                    if (x.Code.IsNullOrWhiteSpace() || x.Code.Length < 8) { return false; }
-                    return x.Code.Trim().Remove(0, 2) == info.StockCode;
+                    if (x.Code.IsNullOrWhiteSpace() || x.Code.Length < 5) { return false; }
+                    return x.Code.Trim().Remove(0, 2) == info.StockCode.TrimStart('.');
                 });
                 if (stock == null || stock.Code.IsNullOrWhiteSpace())
                 {
@@ -668,7 +763,8 @@ public partial class MainWindow : Window
                     StockConfigArray.ImportantIndexs[stock.Code].IndexInfo = $"{i18n[g_conf.Lang][StockIndexPrefix + stock.Code]} {info.CurrentPrice:f2} {info.PriceChangePercent:f2}%";
                     continue;
                 }
-                content += StockInfoHandle(ref stock, info) + Environment.NewLine;
+                var fieldValues = GetFieldValues(ref stock, info);
+                allStocksData.Add(fieldValues);
                 daymake += stock.DayMake;
                 allmake += stock.AllMake;
                 allcost += stock.Cost;
@@ -705,38 +801,51 @@ public partial class MainWindow : Window
                 allyield_day = daymake / allcost * 100;// 总持日收益率
             }
 
+            // 整理扩展字段内容
+            var extendContent = "";
+            var lastMarket = "";
             foreach (var item in g_conf.ExtendControls)
             {
+                if (!item.Key.StartsWith(StockIndexPrefix))
+                {
+                    if (!item.Visable)
+                    {
+                        if (item.NewLine) extendContent += Environment.NewLine;
+                        continue;
+                    }
+                    if (!i18n[g_conf.Lang].TryGetValue(item.Key, out var field)) continue;
+                    var nl = item.NewLine ? Environment.NewLine : "";
+                    var temp = item.Key switch
+                    {
+                        "ui_all_stock_day_make" => $"{nl}{field} {daymake:f2} ",
+                        "ui_all_stock_all_make" => $"{nl}{field} {allmake:f2} ",
+                        "ui_all_cost" => $"{nl}{field} {allcost:f2} ",
+                        "ui_all_market_value" => $"{nl}{field} {allmarketvalue:f2} ",
+                        "ui_all_yield_day" => $"{nl}{field} {allyield_day:f2}% ",
+                        "ui_all_yield" => $"{nl}{field} {allyield:f2}% ",
+                        _ => ""
+                    };
+                    extendContent += temp;
+                    continue;
+                }
+                // 指数：按市场分组，每个市场一行
                 if (!item.Visable)
                 {
-                    if (item.NewLine)
-                    {
-                        content += Environment.NewLine;
-                    }
+                    if (item.NewLine) extendContent += Environment.NewLine;
                     continue;
                 }
-                if (!i18n[g_conf.Lang].TryGetValue(item.Key, out var field))
+                var market = item.Key.Substring(StockIndexPrefix.Length);
+                market = market.StartsWith("hk") ? "hk" : market.StartsWith("us") ? "us" : "a";
+                if (market != lastMarket)
                 {
-                    continue;
+                    if (lastMarket != "") extendContent += Environment.NewLine;
+                    lastMarket = market;
                 }
-                var newline = item.NewLine ? Environment.NewLine : "";
-                var temp = item.Key switch
-                {
-                    "ui_fieldname" => $"{GetFieldName(newline)} ",
-                    "ui_all_stock_day_make" => $"{newline}{field} {daymake:f2} ",
-                    "ui_all_stock_all_make" => $"{newline}{field} {allmake:f2} ",
-                    "ui_all_cost" => $"{newline}{field} {allcost:f2} ",
-                    "ui_all_market_value" => $"{newline}{field} {allmarketvalue:f2} ",
-                    "ui_all_yield_day" => $"{newline}{field} {allyield_day:f2}% ",
-                    "ui_all_yield" => $"{newline}{field} {allyield:f2}% ",
-                    _ => ""
-                };
-                if (item.Key.StartsWith(StockIndexPrefix))
-                {
-                    temp = $"{newline}{StockConfigArray.ImportantIndexs[item.Key]?.IndexInfo} ";
-                }
-                content += temp;
+                var idxNl = item.NewLine ? Environment.NewLine : "";
+                var idxInfo = StockConfigArray.ImportantIndexs[item.Key]?.IndexInfo;
+                if (idxInfo != null) extendContent += idxNl + idxInfo + " ";
             }
+
             var status = UIStatus.Normal;
             if (!g_conf.Transparent)
             {
@@ -749,7 +858,7 @@ public partial class MainWindow : Window
                     status = UIStatus.DownLimit;
                 }
             }
-            UpdateUI(content, status);
+            UpdateGrid(allStocksData, extendContent.TrimEnd(), status);
             if (reminder.IsNullOrWhiteSpace() == false)
             {
                 TrayIcon.ShowBalloonTip("", reminder.TrimEnd(), BalloonIcon.None);
@@ -761,7 +870,7 @@ public partial class MainWindow : Window
 
     private void Delay(int ms)
     {
-        Task.Delay(ms).Wait();
+        Thread.Sleep(ms);
     }
 
     private void Delay()
@@ -788,36 +897,296 @@ public partial class MainWindow : Window
 
     private void UpdateColor(UIStatus status = UIStatus.Normal)
     {
-        switch (status)
+        var foreground = status switch
         {
-            case UIStatus.UpLimit:
-                MainTextBlock.Foreground = new SolidColorBrush(Colors.Yellow);
-                border.Background = new SolidColorBrush(Colors.Red);
-                break;
-            case UIStatus.DownLimit:
-                MainTextBlock.Foreground = new SolidColorBrush(Colors.YellowGreen);
-                border.Background = new SolidColorBrush(Colors.Green);
-                break;
-            case UIStatus.ProgramError:
-                MainTextBlock.Foreground = new SolidColorBrush(Colors.Yellow);
-                border.Background = new SolidColorBrush(Colors.Purple);
-                break;
-            case UIStatus.Normal:
-            default:
-                break;
+            UIStatus.UpLimit => new SolidColorBrush(Colors.Yellow),
+            UIStatus.DownLimit => new SolidColorBrush(Colors.YellowGreen),
+            UIStatus.ProgramError => new SolidColorBrush(Colors.Yellow),
+            _ => color_fg
+        };
+        var background = status switch
+        {
+            UIStatus.UpLimit => new SolidColorBrush(Colors.Red),
+            UIStatus.DownLimit => new SolidColorBrush(Colors.Green),
+            UIStatus.ProgramError => new SolidColorBrush(Colors.Purple),
+            _ => color_bg
+        };
+
+        MainTextBlock.Foreground = foreground;
+        border.Background = background;
+
+        // 更新 Grid 中所有 TextBlock 的前景色
+        if (MainScrollViewer.Visibility == Visibility.Visible)
+        {
+            foreach (var child in MainGrid.Children)
+            {
+                if (child is TextBlock textBlock)
+                {
+                    textBlock.Foreground = foreground;
+                }
+            }
         }
+    }
+
+    /// <summary>
+    /// 标记 Grid 结构需要重建（在配置改变时调用）
+    /// </summary>
+    public void MarkGridStructureDirty()
+    {
+        _gridStructureDirty = true;
+    }
+
+    /// <summary>
+    /// 检查是否需要重建 Grid 结构
+    /// </summary>
+    private bool NeedRebuildStructure(List<List<FieldValue>> allStocksData, string extendContent)
+    {
+        var showFieldName = g_conf.FieldControls.TryGetValue("ui_fieldname", out var showHeader) && showHeader;
+        var fieldNames = GetFieldNames();
+        var columnCount = fieldNames.Count;
+        var dataRowCount = allStocksData.Count;
+        var hasExtend = !string.IsNullOrEmpty(extendContent);
+        var totalRows = (showFieldName ? 1 : 0) + dataRowCount + (hasExtend ? 1 : 0);
+
+        return _gridStructureDirty ||
+               columnCount != _cachedColumnCount ||
+               totalRows != _cachedRowCount ||
+               showFieldName != _cachedShowFieldName;
+    }
+
+    /// <summary>
+    /// 重建 Grid 结构（清空并重新创建所有元素）
+    /// </summary>
+    private void RebuildGridStructure(List<List<FieldValue>> allStocksData, string extendContent)
+    {
+        MainGrid.Children.Clear();
+        MainGrid.RowDefinitions.Clear();
+        MainGrid.ColumnDefinitions.Clear();
+        _headerTextBlocks.Clear();
+        _dataTextBlocks.Clear();
+        _extendTextBlock = null;
+
+        if (allStocksData.Count == 0)
+        {
+            _cachedColumnCount = 0;
+            _cachedRowCount = 0;
+            return;
+        }
+
+        // 获取表头
+        var fieldNames = GetFieldNames();
+        var columnCount = fieldNames.Count;
+        _cachedColumnCount = columnCount;
+
+        // 创建列定义
+        for (var i = 0; i < columnCount; i++)
+        {
+            MainGrid.ColumnDefinitions.Add(new ColumnDefinition
+            {
+                Width = GridLength.Auto
+            });
+        }
+
+        // 检查是否显示表头行
+        var showFieldName = g_conf.FieldControls.TryGetValue("ui_fieldname", out var showHeader) && showHeader;
+        _cachedShowFieldName = showFieldName;
+        var startRow = 0;
+
+        // 创建表头行（如果启用）
+        if (showFieldName)
+        {
+            MainGrid.RowDefinitions.Add(new RowDefinition());
+            for (var i = 0; i < fieldNames.Count; i++)
+            {
+                var headerBlock = new TextBlock
+                {
+                    Text = fieldNames[i],
+                    FontWeight = FontWeights.Bold,
+                    Margin = new Thickness(2, 0, 2, 0),
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    Foreground = color_fg
+                };
+                Grid.SetRow(headerBlock, 0);
+                Grid.SetColumn(headerBlock, i);
+                MainGrid.Children.Add(headerBlock);
+                _headerTextBlocks.Add(headerBlock);
+            }
+            startRow = 1;
+        }
+
+        // 创建数据行
+        for (var rowIndex = 0; rowIndex < allStocksData.Count; rowIndex++)
+        {
+            MainGrid.RowDefinitions.Add(new RowDefinition());
+            var rowData = allStocksData[rowIndex];
+            var rowBlocks = new List<TextBlock>();
+            for (var colIndex = 0; colIndex < rowData.Count && colIndex < columnCount; colIndex++)
+            {
+                var field = rowData[colIndex];
+                var textBlock = new TextBlock
+                {
+                    Text = field.Value,
+                    Margin = new Thickness(2, 0, 2, 0),
+                    Foreground = color_fg
+                };
+                textBlock.HorizontalAlignment = field.Alignment switch
+                {
+                    FieldAlignment.Left => HorizontalAlignment.Left,
+                    FieldAlignment.Center => HorizontalAlignment.Center,
+                    _ => HorizontalAlignment.Right
+                };
+                Grid.SetRow(textBlock, rowIndex + startRow);
+                Grid.SetColumn(textBlock, colIndex);
+                MainGrid.Children.Add(textBlock);
+                rowBlocks.Add(textBlock);
+            }
+            _dataTextBlocks.Add(rowBlocks);
+        }
+
+        // 添加扩展字段行（如果有）
+        if (!string.IsNullOrEmpty(extendContent))
+        {
+            var extRowIndex = MainGrid.RowDefinitions.Count;
+            MainGrid.RowDefinitions.Add(new RowDefinition());
+            _extendTextBlock = new TextBlock
+            {
+                Text = extendContent,
+                Margin = new Thickness(2, 0, 2, 0),
+                TextWrapping = TextWrapping.Wrap,
+                Foreground = color_fg
+            };
+            Grid.SetRow(_extendTextBlock, extRowIndex);
+            Grid.SetColumnSpan(_extendTextBlock, columnCount);
+            MainGrid.Children.Add(_extendTextBlock);
+        }
+
+        _cachedRowCount = MainGrid.RowDefinitions.Count;
+        _gridStructureDirty = false;
+    }
+
+    /// <summary>
+    /// 只更新 Grid 数据（不重建结构）
+    /// </summary>
+    private void UpdateGridData(List<List<FieldValue>> allStocksData, string extendContent)
+    {
+        // 更新数据行
+        for (var rowIndex = 0; rowIndex < allStocksData.Count && rowIndex < _dataTextBlocks.Count; rowIndex++)
+        {
+            var rowData = allStocksData[rowIndex];
+            var rowBlocks = _dataTextBlocks[rowIndex];
+            for (var colIndex = 0; colIndex < rowData.Count && colIndex < rowBlocks.Count; colIndex++)
+            {
+                var field = rowData[colIndex];
+                var textBlock = rowBlocks[colIndex];
+                textBlock.Text = field.Value;
+                textBlock.HorizontalAlignment = field.Alignment switch
+                {
+                    FieldAlignment.Left => HorizontalAlignment.Left,
+                    FieldAlignment.Center => HorizontalAlignment.Center,
+                    _ => HorizontalAlignment.Right
+                };
+            }
+        }
+
+        // 更新扩展字段行
+        if (_extendTextBlock != null)
+        {
+            _extendTextBlock.Text = extendContent;
+        }
+    }
+
+    /// <summary>
+    /// 更新 Grid 表格显示
+    /// </summary>
+    /// <param name="allStocksData">所有股票的字段数据</param>
+    /// <param name="extendContent">扩展字段内容（指数、汇总等）</param>
+    /// <param name="status">UI 状态</param>
+    private void UpdateGrid(List<List<FieldValue>> allStocksData, string extendContent, UIStatus status = UIStatus.Normal)
+    {
+        if (this == null)
+        {
+            return;
+        }
+
+        Application.Current.Dispatcher.Invoke(() =>
+        {
+            // 切换到 Grid 模式
+            MainTextBlock.Visibility = Visibility.Collapsed;
+            MainScrollViewer.Visibility = Visibility.Visible;
+
+            if (allStocksData.Count == 0)
+            {
+                MainGrid.Children.Clear();
+                MainGrid.RowDefinitions.Clear();
+                MainGrid.ColumnDefinitions.Clear();
+                _headerTextBlocks.Clear();
+                _dataTextBlocks.Clear();
+                _extendTextBlock = null;
+                _cachedColumnCount = 0;
+                _cachedRowCount = 0;
+                return;
+            }
+
+            // 检查是否需要重建结构
+            if (NeedRebuildStructure(allStocksData, extendContent))
+            {
+                RebuildGridStructure(allStocksData, extendContent);
+            }
+            else
+            {
+                UpdateGridData(allStocksData, extendContent);
+            }
+
+            if (status != UIStatus.Normal)
+            {
+                UpdateColor(status);
+            }
+        });
+    }
+
+    /// <summary>
+    /// 切换到单行文本模式
+    /// </summary>
+    private void SwitchToTextMode()
+    {
+        MainTextBlock.Visibility = Visibility.Visible;
+        MainScrollViewer.Visibility = Visibility.Collapsed;
     }
     #endregion
 
     #region 请求数据
+    public async Task<bool> VerifyStockCode(string code)
+    {
+        try
+        {
+            var request = new RestRequest();
+            request.AddQueryParameter("q", code);
+            var response = await g_client.GetAsync(request);
+            if (response.IsSuccessStatusCode)
+            {
+                var content = response.Content;
+                var result = StockInfo.Get(content);
+                return result != null;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex);
+        }
+        return false;
+    }
+
     private async Task<StockInfo> Request(StockConfig sc, bool useCache)
     {
         try
         {
             if (useCache)
             {
-                g_last_res ??= await Request(sc, false);// 使用缓存时 如果缓存为空则请求一次
-                return g_last_res;
+                lock (g_dataLock)
+                {
+                    if (g_last_res != null) return g_last_res;
+                }
+                return await Request(sc, false);
             }
             var request = new RestRequest();
             request.AddQueryParameter("q", sc.Code);
@@ -825,8 +1194,12 @@ public partial class MainWindow : Window
             if (response.IsSuccessStatusCode)
             {
                 var content = response.Content;
-                g_last_res = StockInfo.Get(content);
-                return g_last_res;
+                var result = StockInfo.Get(content);
+                lock (g_dataLock)
+                {
+                    g_last_res = result;
+                }
+                return result;
             }
             else
             {
@@ -847,11 +1220,12 @@ public partial class MainWindow : Window
         {
             if (useCache)
             {
-                if (g_last_res_set == null || g_last_res_set.Count == 0)
+                lock (g_dataLock)
                 {
-                    g_last_res_set = await Request(scs, false);// 使用缓存时 如果缓存为空则请求一次
+                    if (g_last_res_set != null && g_last_res_set.Count > 0)
+                        return g_last_res_set;
                 }
-                return g_last_res_set;
+                return await Request(scs, false);
             }
             var codes = string.Join(",", scs.Where(x => x.Code.IsNullOrWhiteSpace() == false).Select(x => x.Code));
             var request = new RestRequest();
@@ -862,9 +1236,9 @@ public partial class MainWindow : Window
                 var contents = response.Content.Split(';');
                 if (contents.Length == 0)
                 {
-                    return g_last_res_set;
+                    lock (g_dataLock) { return g_last_res_set; }
                 }
-                g_last_res_set.Clear();
+                var newSet = new List<StockInfo>();
                 foreach (var content in contents)
                 {
                     if (content.IsNullOrWhiteSpace())
@@ -874,10 +1248,14 @@ public partial class MainWindow : Window
                     var stock = StockInfo.Get(content.Trim());
                     if (stock != null)
                     {
-                        g_last_res_set.Add(stock);
+                        newSet.Add(stock);
                     }
                 }
-                return g_last_res_set;
+                lock (g_dataLock)
+                {
+                    g_last_res_set = newSet;
+                    return g_last_res_set;
+                }
             }
             else
             {
@@ -958,84 +1336,7 @@ public partial class MainWindow : Window
     {
         if (sender is MenuItem item)
         {
-            // OnMenuItemClick(item.Name);
             OnMenuItemClick(item);
-        }
-    }
-
-    public void OnMenuItemClick(string menuItemName)
-    {
-        switch (menuItemName)
-        {
-            case "menu_exit":
-                Close();
-                break;
-            case "menu_hide_border":
-                g_conf.HideBorder = !g_conf.HideBorder;
-                menu_hide_border.IsChecked = g_conf.HideBorder;
-                var tkns = new Thickness(g_conf.HideBorder ? 0 : 1);
-                Resources["BorderThickness"] = tkns;
-                border.BorderThickness = tkns;
-                g_configWindow?.InitBorderThickess(g_conf.HideBorder);
-                break;
-            case "menu_dark":
-                g_conf.DarkMode = !g_conf.DarkMode;
-                menu_dark.IsChecked = g_conf.DarkMode;
-                InitColor();
-                g_configWindow?.InitColor();
-                break;
-            case "menu_topmost":
-                g_conf.Topmost = !g_conf.Topmost;
-                menu_topmost.IsChecked = g_conf.Topmost;
-                Topmost = g_conf.Topmost;
-                BorderTwinkle(g_conf.Topmost);
-                break;
-            case "menu_conf":
-                MakeConfigWindow();
-                break;
-            case "menu_conf_file":
-                var fullPath = Path.Combine(UserDataPath, "config.json");
-                Process.Start(fullPath);
-                break;
-            case "menu_data_dir":
-                Process.Start(UserDataPath);
-                break;
-            case "menu_show_in_taskbar":
-                g_conf.ShowInTaskbar = !g_conf.ShowInTaskbar;
-                menu_show_in_taskbar.IsChecked = g_conf.ShowInTaskbar;
-                ShowInTaskbar = g_conf.ShowInTaskbar;
-                BorderTwinkle(g_conf.ShowInTaskbar);
-                break;
-            case "menu_data_roll":
-                g_conf.DataRoll = !g_conf.DataRoll;
-                menu_data_roll.IsChecked = g_conf.DataRoll;
-                DataUpdate();
-                BorderTwinkle(g_conf.DataRoll);
-                break;
-            case "menu_lang":
-                g_conf.Lang = g_conf.Lang == "cn" ? "en" : "cn";
-                InitLang();
-                DataUpdate();
-                g_configWindow?.InitLang();
-                break;
-            case "menu_debug_mode":
-                g_conf.Debug = !g_conf.Debug;
-                menu_debug_mode.IsChecked = g_conf.Debug;
-                DataUpdate();
-                BorderTwinkle(g_conf.Debug);
-                break;
-            case "menu_check_update":
-                MakeUpdater();
-                break;
-            case "menu_transparent":
-                g_conf.Transparent = !g_conf.Transparent;
-                menu_transparent.IsChecked = g_conf.Transparent;
-                border.Background = g_conf.Transparent ? color_transparent : color_bg;
-                DragBlock.Visibility = g_conf.Transparent ? Visibility.Visible : Visibility.Collapsed;
-                break;
-            default:
-                MessageBox.Show(this, "Nothing happened...", i18n[g_conf.Lang]["ui_title_tip"]);
-                break;
         }
     }
 
@@ -1120,12 +1421,6 @@ public partial class MainWindow : Window
                 break;
             case "tary_project_page":
                 Process.Start($"https://github.com/pdone/{App.ProductName}");
-                break;
-            case "menu_name_align":
-                g_conf.NameAlign = !g_conf.NameAlign;
-                item.IsChecked = g_conf.NameAlign;
-                DataUpdate();
-                BorderTwinkle(g_conf.NameAlign);
                 break;
             default:
                 MessageBox.Show(this, "Nothing happened...", i18n[g_conf.Lang]["ui_title_tip"]);

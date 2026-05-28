@@ -166,10 +166,19 @@ public class StockConfigArray : List<StockConfig>
     public static readonly StockConfigArray ImportantIndexs =
     [
         new StockConfig("sh000001"),
+        new StockConfig("sh000016"),
+        new StockConfig("sh000688"),
+        new StockConfig("sh000905"),
+        new StockConfig("sh000852"),
         new StockConfig("sz399001"),
         new StockConfig("sz399006"),
         new StockConfig("sz399300"),
         new StockConfig("bj899050"),
+        new StockConfig("hkHSI"),
+        new StockConfig("hkHSCEI"),
+        new StockConfig("hkHSCCI"),
+        new StockConfig("usDJI"),
+        new StockConfig("usNDX"),
     ];
 
     /// <summary>
@@ -187,9 +196,7 @@ public class StockConfigArray : List<StockConfig>
             {
                 File.WriteAllText(fullPath, conf.ToStr());
             }
-            var reader = File.OpenText(fullPath);
-            conf = reader.ReadToEnd().ToObj<StockConfigArray>();
-            reader.Close();
+            conf = File.ReadAllText(fullPath).ToObj<StockConfigArray>();
         }
         catch (Exception ex)
         {
@@ -219,6 +226,13 @@ public class StockConfigArray : List<StockConfig>
 
 public class Config
 {
+    private const int CurrentConfigVersion = 5;
+
+    /// <summary>
+    /// 配置文件版本号，用于迁移
+    /// </summary>
+    public int ConfigVersion { get; set; } = 0;
+
     /// <summary>
     /// 调试模式
     /// </summary>
@@ -267,10 +281,6 @@ public class Config
     /// </summary>
     public bool Transparent { get; set; } = false;
     /// <summary>
-    /// 名称对齐
-    /// </summary>
-    public bool NameAlign { get; set; } = true;
-    /// <summary>
     /// 不透明度
     /// </summary>
     public double Opacity { get; set; } = 0.8;
@@ -293,11 +303,11 @@ public class Config
     /// <summary>
     /// 配置窗口宽度
     /// </summary>
-    public double ConfigWindowWidth { get; set; } = 200;
+    public double ConfigWindowWidth { get; set; } = 420;
     /// <summary>
     /// 配置窗口高度
     /// </summary>
-    public double ConfigWindowHeight { get; set; } = 165;
+    public double ConfigWindowHeight { get; set; } = 450;
     /// <summary>
     /// 是否每日重置提醒次数
     /// </summary>
@@ -320,6 +330,7 @@ public class Config
         get; set;
     } = new()
     {
+        {"ui_fieldname",false},
         {"ui_price",true},
         {"ui_change",true},
         {"ui_buy_price",false},
@@ -335,6 +346,16 @@ public class Config
     };
 
     /// <summary>
+    /// 字段换行控制
+    /// </summary>
+    public Dictionary<string, bool> FieldNewLines
+    {
+        get; set;
+    } = new()
+    {
+    };
+
+    /// <summary>
     /// 扩展字段显示控制
     /// </summary>
     public List<ExtendControlObj> ExtendControls
@@ -342,14 +363,23 @@ public class Config
         get; set;
     } =
     [
-        // 字段说明
-        new ExtendControlObj("ui_fieldname"),
-        // 各大指数
+        // A股指数
         new ExtendControlObj("ui_index_sh000001"),
+        new ExtendControlObj("ui_index_sh000016"),
+        new ExtendControlObj("ui_index_sh000688"),
+        new ExtendControlObj("ui_index_sh000905"),
+        new ExtendControlObj("ui_index_sh000852"),
         new ExtendControlObj("ui_index_sz399001"),
         new ExtendControlObj("ui_index_sz399006"),
         new ExtendControlObj("ui_index_sz399300"),
         new ExtendControlObj("ui_index_bj899050"),
+        // H股指数
+        new ExtendControlObj("ui_index_hkHSI"),
+        new ExtendControlObj("ui_index_hkHSCEI"),
+        new ExtendControlObj("ui_index_hkHSCCI"),
+        // 美股指数
+        new ExtendControlObj("ui_index_usDJI"),
+        new ExtendControlObj("ui_index_usNDX"),
         // 个人数据
         new ExtendControlObj("ui_all_stock_day_make"),
         new ExtendControlObj("ui_all_stock_all_make"),
@@ -374,15 +404,88 @@ public class Config
             {
                 File.WriteAllText(fullPath, conf.ToStr());
             }
-            var reader = File.OpenText(fullPath);
-            conf = reader.ReadToEnd().ToObj<Config>();
-            reader.Close();
+            conf = File.ReadAllText(fullPath).ToObj<Config>();
+
+            if (conf.ConfigVersion < CurrentConfigVersion)
+            {
+                Migrate(conf);
+                conf.ConfigVersion = CurrentConfigVersion;
+                conf.Save();
+            }
         }
         catch (Exception ex)
         {
             Logger.Error(ex);
         }
         return conf;
+    }
+
+    private static void Migrate(Config conf)
+    {
+        if (conf.ConfigVersion < 2)
+        {
+            var existingKeys = new HashSet<string>(conf.ExtendControls.Select(x => x.Key));
+            var insertIndex = conf.ExtendControls.FindIndex(x => x.Key == "ui_all_stock_day_make");
+            if (insertIndex < 0) insertIndex = conf.ExtendControls.Count;
+
+            foreach (var index in StockConfigArray.ImportantIndexs)
+            {
+                var key = Utils.StockIndexPrefix + index.Code;
+                if (!existingKeys.Contains(key))
+                {
+                    conf.ExtendControls.Insert(insertIndex, new ExtendControlObj(key));
+                    insertIndex++;
+                }
+            }
+            Logger.Info($"Config v2: added missing index entries to ExtendControls");
+        }
+        if (conf.ConfigVersion < 3)
+        {
+            // 移动 ui_fieldname 从 ExtendControls 到 FieldControls
+            conf.ExtendControls.RemoveAll(x => x.Key == "ui_fieldname");
+            if (!conf.FieldControls.ContainsKey("ui_fieldname"))
+            {
+                var newDict = new Dictionary<string, bool> { { "ui_fieldname", false } };
+                foreach (var kvp in conf.FieldControls) newDict[kvp.Key] = kvp.Value;
+                conf.FieldControls = newDict;
+            }
+            conf.FieldNewLines ??= new Dictionary<string, bool>();
+            if (!conf.FieldNewLines.ContainsKey("ui_fieldname"))
+            {
+                conf.FieldNewLines["ui_fieldname"] = false;
+            }
+
+            // 按市场排序指数：A股 → H股 → 美股
+            var indexKeys = new HashSet<string>(
+                StockConfigArray.ImportantIndexs.Select(x => Utils.StockIndexPrefix + x.Code));
+            var indexItems = conf.ExtendControls
+                .Where(x => indexKeys.Contains(x.Key))
+                .ToList();
+            var otherItems = conf.ExtendControls
+                .Where(x => !indexKeys.Contains(x.Key))
+                .ToList();
+            var orderedIndexItems = StockConfigArray.ImportantIndexs
+                .Select(x => indexItems.FirstOrDefault(i => i.Key == Utils.StockIndexPrefix + x.Code)
+                         ?? new ExtendControlObj(Utils.StockIndexPrefix + x.Code))
+                .ToList();
+            var personalIdx = otherItems.FindIndex(x => x.Key.StartsWith("ui_all_"));
+            if (personalIdx < 0) personalIdx = otherItems.Count;
+            otherItems.InsertRange(personalIdx, orderedIndexItems);
+            conf.ExtendControls = otherItems;
+
+            Logger.Info($"Config v3: moved ui_fieldname, reordered indexes");
+        }
+        if (conf.ConfigVersion < 4)
+        {
+            conf.FieldNewLines?.Remove("ui_fieldname");
+            Logger.Info($"Config v4: removed ui_fieldname from FieldNewLines");
+        }
+        if (conf.ConfigVersion < 5)
+        {
+            conf.FieldNewLines = null;
+            Logger.Info($"Config v5: removed FieldNewLines (Grid layout no longer needs it)");
+        }
+        Logger.Info($"Config migrated to version {CurrentConfigVersion}");
     }
     /// <summary>
     /// 写入用户配置

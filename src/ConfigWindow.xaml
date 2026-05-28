@@ -5,10 +5,10 @@
         xmlns:local="clr-namespace:iNeedMyMoneyBack"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         Title="ConfigWindow"
-        Width="270"
-        Height="230"
-        MinWidth="270"
-        MinHeight="155"
+        Width="420"
+        Height="450"
+        MinWidth="350"
+        MinHeight="300"
         AllowsTransparency="True"
         Background="Transparent"
         FontFamily="{DynamicResource FontConfig}"
@@ -20,6 +20,12 @@
     <Window.Resources>
         <SolidColorBrush x:Key="TextColor" />
         <SolidColorBrush x:Key="CheckedColor" />
+        <SolidColorBrush x:Key="CardBackground" />
+        <SolidColorBrush x:Key="CardBorder" />
+        <SolidColorBrush x:Key="TabBackground" />
+        <SolidColorBrush x:Key="InputBackground" />
+        <SolidColorBrush x:Key="ScrollThumb" />
+        <SolidColorBrush x:Key="ScrollTrack" />
         <Thickness x:Key="BorderThickness" />
         <Style TargetType="Button">
             <Setter Property="Background" Value="Transparent" />
@@ -28,15 +34,16 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="border"
+                                Padding="6,3"
                                 Background="{TemplateBinding Background}"
-                                BorderBrush="#000"
-                                BorderThickness="{DynamicResource BorderThickness}"
-                                CornerRadius="8">
+                                BorderBrush="{DynamicResource CardBorder}"
+                                BorderThickness="1"
+                                CornerRadius="5">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="BorderBrush" Value="#666" />
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource HoverBackground}" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -44,24 +51,22 @@
             </Setter>
         </Style>
         <Style TargetType="CheckBox">
-            <Setter Property="Margin" Value="2,2" />
+            <Setter Property="Margin" Value="4,3" />
             <Setter Property="Foreground" Value="{DynamicResource TextColor}" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="CheckBox">
-                        <Grid>
-                            <Border x:Name="border"
-                                    Padding="4"
-                                    Background="Transparent"
-                                    BorderBrush="Black"
-                                    BorderThickness="{DynamicResource BorderThickness}"
-                                    CornerRadius="8">
-                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
-                            </Border>
-                        </Grid>
+                        <Border x:Name="border"
+                                Padding="6,4"
+                                Background="Transparent"
+                                BorderBrush="{DynamicResource CardBorder}"
+                                BorderThickness="1"
+                                CornerRadius="5">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="BorderBrush" Value="#666" />
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource HoverBackground}" />
                             </Trigger>
                             <Trigger Property="IsChecked" Value="True">
                                 <Setter TargetName="border" Property="Background" Value="{DynamicResource CheckedColor}" />
@@ -71,9 +76,108 @@
                 </Setter.Value>
             </Setter>
         </Style>
-        <Style TargetType="WrapPanel">
-            <Setter Property="Orientation" Value="Horizontal" />
-            <Setter Property="Margin" Value="5" />
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="{DynamicResource InputBackground}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextColor}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource CardBorder}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="4,2" />
+            <Setter Property="Margin" Value="2" />
+        </Style>
+        <Style TargetType="TabControl">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+        <Style TargetType="TabItem">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource TextColor}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabItem">
+                        <Border x:Name="border"
+                                Padding="8,4"
+                                Background="Transparent"
+                                BorderBrush="{DynamicResource CardBorder}"
+                                BorderThickness="0,0,0,2">
+                            <ContentPresenter x:Name="content"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              ContentSource="Header" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource HoverBackground}" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource TextColor}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style TargetType="ScrollViewer">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ScrollViewer">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <ScrollContentPresenter Grid.Column="0" Grid.Row="0" />
+                            <ScrollBar x:Name="PART_VerticalScrollBar"
+                                       Grid.Column="1"
+                                       Grid.Row="0"
+                                       Width="8"
+                                       Background="{DynamicResource ScrollTrack}"
+                                       Orientation="Vertical"
+                                       Value="{TemplateBinding VerticalOffset}"
+                                       Maximum="{TemplateBinding ScrollableHeight}"
+                                       ViewportSize="{TemplateBinding ViewportHeight}"
+                                       Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}" />
+                            <ScrollBar x:Name="PART_HorizontalScrollBar"
+                                       Grid.Column="0"
+                                       Grid.Row="1"
+                                       Height="8"
+                                       Background="{DynamicResource ScrollTrack}"
+                                       Orientation="Horizontal"
+                                       Value="{TemplateBinding HorizontalOffset}"
+                                       Maximum="{TemplateBinding ScrollableWidth}"
+                                       ViewportSize="{TemplateBinding ViewportWidth}"
+                                       Visibility="{TemplateBinding ComputedHorizontalScrollBarVisibility}" />
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style TargetType="ScrollBar">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ScrollBar">
+                        <Grid>
+                            <Track x:Name="PART_Track"
+                                   IsDirectionReversed="True">
+                                <Track.Thumb>
+                                    <Thumb>
+                                        <Thumb.Template>
+                                            <ControlTemplate TargetType="Thumb">
+                                                <Border Background="{DynamicResource ScrollThumb}"
+                                                        CornerRadius="4"
+                                                        Margin="1" />
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </Track.Thumb>
+                            </Track>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
     </Window.Resources>
     <Grid x:Name="grid" Background="Transparent">
@@ -81,62 +185,108 @@
                 BorderBrush="#000"
                 BorderThickness="{DynamicResource BorderThickness}"
                 CornerRadius="0,10,0,10">
-            <StackPanel Margin="0,10,0,30" Orientation="Vertical">
-                <DataGrid x:Name="dataGrid"
-                          MinHeight="100"
-                          AutoGenerateColumns="False"
-                          HeadersVisibility="Column"
-                          ScrollViewer.HorizontalScrollBarVisibility="Hidden"
-                          ScrollViewer.VerticalScrollBarVisibility="Hidden"
-                          SelectionUnit="FullRow">
-                    <DataGrid.Style>
-                        <Style TargetType="DataGrid">
-                            <Setter Property="BorderThickness" Value="0" />
-                        </Style>
-                    </DataGrid.Style>
-                    <DataGrid.ColumnHeaderStyle>
-                        <Style TargetType="DataGridColumnHeader">
-                            <Setter Property="BorderThickness" Value="0,0,0,1" />
-                            <Setter Property="HorizontalContentAlignment" Value="Center" />
-                            <Setter Property="Foreground" Value="{DynamicResource TextColor}" />
-                            <Setter Property="Background" Value="Transparent" />
-                            <Setter Property="BorderBrush" Value="#000" />
-                        </Style>
-                    </DataGrid.ColumnHeaderStyle>
-                    <DataGrid.CellStyle>
-                        <Style TargetType="DataGridCell" />
-                    </DataGrid.CellStyle>
-                    <DataGrid.RowStyle>
-                        <Style TargetType="DataGridRow">
-                            <Setter Property="Background" Value="Transparent" />
-                            <Setter Property="Foreground" Value="{DynamicResource TextColor}" />
-                        </Style>
-                    </DataGrid.RowStyle>
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Binding="{Binding Code, UpdateSourceTrigger=PropertyChanged}" Header="Code" />
-                        <DataGridTextColumn Binding="{Binding Name}"
-                                            Header="Name"
-                                            IsReadOnly="True" />
-                        <DataGridTextColumn Binding="{Binding NickName}" Header="NickName" />
-                        <DataGridTextColumn Binding="{Binding BuyPrice}" Header="BuyPrice" />
-                        <DataGridTextColumn Binding="{Binding BuyCount}" Header="BuyCount" />
-                        <DataGridTextColumn Binding="{Binding ReminderPriceUp}" Header="ReminderPriceUp" />
-                        <DataGridTextColumn Binding="{Binding ReminderPriceDown}" Header="ReminderPriceDown" />
-                        <DataGridTextColumn Binding="{Binding ReminderTimes}" Header="ReminderTimes" />
-                    </DataGrid.Columns>
-                </DataGrid>
-                <WrapPanel x:Name="FieldControls" />
-                <WrapPanel x:Name="StockIndexControls" />
-                <WrapPanel x:Name="ExtendControls" />
-            </StackPanel>
+            <Grid Margin="5">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <TabControl x:Name="mainTab" Grid.Row="0">
+                    <!-- 股票管理 Tab -->
+                    <TabItem Name="tab_stocks" Header="股票管理">
+                        <Grid Margin="5">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <!-- 添加股票区域 -->
+                            <Border Grid.Row="0"
+                                    Margin="0,0,0,5"
+                                    Padding="5"
+                                    Background="{DynamicResource CardBackground}"
+                                    BorderBrush="{DynamicResource CardBorder}"
+                                    BorderThickness="1"
+                                    CornerRadius="5">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox x:Name="txtStockCode"
+                                             Grid.Column="0"
+                                             VerticalContentAlignment="Center"
+                                             KeyDown="TxtStockCode_KeyDown" />
+                                    <Button x:Name="btn_add_stock"
+                                            Grid.Column="1"
+                                            Margin="5,0,0,0"
+                                            Click="Btn_Add_Stock_Click" />
+                                </Grid>
+                            </Border>
+                            <!-- 股票列表 -->
+                            <ScrollViewer x:Name="stockListScroll"
+                                          Grid.Row="1"
+                                          HorizontalScrollBarVisibility="Disabled"
+                                          VerticalScrollBarVisibility="Auto">
+                                <StackPanel x:Name="stockListPanel" />
+                            </ScrollViewer>
+                        </Grid>
+                    </TabItem>
+                    <!-- 显示字段 Tab -->
+                    <TabItem Name="tab_fields" Header="显示字段">
+                        <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                            <StackPanel Margin="5">
+                                <!-- 基础字段 -->
+                                <TextBlock x:Name="lbl_basic_fields"
+                                           Margin="0,0,0,5"
+                                           FontWeight="Bold"
+                                           Foreground="{DynamicResource TextColor}" />
+                                <WrapPanel x:Name="FieldControls" Orientation="Horizontal" />
+                                 <!-- 指数监控 -->
+                                 <Separator Margin="0,10" Background="{DynamicResource CardBorder}" />
+                                 <TextBlock x:Name="lbl_index_fields"
+                                            Margin="0,0,0,5"
+                                            FontWeight="Bold"
+                                            Foreground="{DynamicResource TextColor}" />
+                                 <TextBlock x:Name="lbl_index_a"
+                                            Margin="4,8,4,2"
+                                            FontSize="11"
+                                            FontWeight="Bold"
+                                            Foreground="{DynamicResource TextColor}"
+                                            Opacity="0.6" />
+                                 <WrapPanel x:Name="StockIndexControlsA" Orientation="Horizontal" />
+                                 <TextBlock x:Name="lbl_index_hk"
+                                            Margin="4,8,4,2"
+                                            FontSize="11"
+                                            FontWeight="Bold"
+                                            Foreground="{DynamicResource TextColor}"
+                                            Opacity="0.6" />
+                                 <WrapPanel x:Name="StockIndexControlsHK" Orientation="Horizontal" />
+                                 <TextBlock x:Name="lbl_index_us"
+                                            Margin="4,8,4,2"
+                                            FontSize="11"
+                                            FontWeight="Bold"
+                                            Foreground="{DynamicResource TextColor}"
+                                            Opacity="0.6" />
+                                 <WrapPanel x:Name="StockIndexControlsUS" Orientation="Horizontal" />
+                                <!-- 扩展字段 -->
+                                <Separator Margin="0,10" Background="{DynamicResource CardBorder}" />
+                                <TextBlock x:Name="lbl_extend_fields"
+                                           Margin="0,0,0,5"
+                                           FontWeight="Bold"
+                                           Foreground="{DynamicResource TextColor}" />
+                                <WrapPanel x:Name="ExtendControls" Orientation="Horizontal" />
+                            </StackPanel>
+                        </ScrollViewer>
+                    </TabItem>
+                </TabControl>
+                <!-- 底部按钮 -->
+                <StackPanel Grid.Row="1"
+                            Margin="0,5,0,0"
+                            HorizontalAlignment="Left"
+                            Orientation="Horizontal">
+                    <Button x:Name="btn_close"
+                            Click="Btn_Close_Click" />
+                </StackPanel>
+            </Grid>
         </Border>
-        <Button x:Name="btn_close"
-                Width="40"
-                Height="20"
-                Margin="5,0,0,5"
-                HorizontalAlignment="Left"
-                VerticalAlignment="Bottom"
-                Click="Btn_Close_Click"
-                Content="Close" />
     </Grid>
 </Window>

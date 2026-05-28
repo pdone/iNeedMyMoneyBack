@@ -4,6 +4,57 @@ namespace iNeedMyMoneyBack;
 
 internal class StockInfo
 {
+    // 腾讯 qt.gtimg.cn 响应字段索引常量
+    private const int IDX_NAME = 1;
+    private const int IDX_CODE = 2;
+    private const int IDX_CURRENT_PRICE = 3;
+    private const int IDX_YESTERDAY_CLOSE = 4;
+    private const int IDX_TODAY_OPEN = 5;
+    private const int IDX_VOLUME = 6;
+    private const int IDX_OUTER_DISK = 7;
+    private const int IDX_INNER_DISK = 8;
+    private const int IDX_BUY1 = 9;
+    private const int IDX_BUY1_VOL = 10;
+    private const int IDX_BUY2 = 11;
+    private const int IDX_BUY2_VOL = 12;
+    private const int IDX_BUY3 = 13;
+    private const int IDX_BUY3_VOL = 14;
+    private const int IDX_BUY4 = 15;
+    private const int IDX_BUY4_VOL = 16;
+    private const int IDX_BUY5 = 17;
+    private const int IDX_BUY5_VOL = 18;
+    private const int IDX_SELL1 = 19;
+    private const int IDX_SELL1_VOL = 20;
+    private const int IDX_SELL2 = 21;
+    private const int IDX_SELL2_VOL = 22;
+    private const int IDX_SELL3 = 23;
+    private const int IDX_SELL3_VOL = 24;
+    private const int IDX_SELL4 = 25;
+    private const int IDX_SELL4_VOL = 26;
+    private const int IDX_SELL5 = 27;
+    private const int IDX_SELL5_VOL = 28;
+    private const int IDX_RECENT_TRANSACTION = 29;
+    private const int IDX_TIME = 30;
+    private const int IDX_PRICE_CHANGE = 31;
+    private const int IDX_PRICE_CHANGE_PERCENT = 32;
+    private const int IDX_HIGHEST_PRICE = 33;
+    private const int IDX_LOWEST_PRICE = 34;
+    private const int IDX_PRICE_VOLUME_AMOUNT = 35;
+    private const int IDX_VOLUME_HAND = 36;
+    private const int IDX_TURNOVER = 37;
+    private const int IDX_TURNOVER_RATE = 38;
+    private const int IDX_PE = 39;
+    private const int IDX_HIGHEST_PRICE2 = 41;
+    private const int IDX_LOWEST_PRICE2 = 42;
+    private const int IDX_PRICE_CHANGE2 = 43;
+    private const int IDX_CIRCULATION_MARKET_VALUE = 44;
+    private const int IDX_TOTAL_MARKET_VALUE = 45;
+    private const int IDX_PB = 46;
+    private const int IDX_PRICE_LIMIT_UP = 47;
+    private const int IDX_PRICE_LIMIT_DOWN = 48;
+    private const int IDX_CURRENCY = 82;
+    private const int MIN_FIELD_COUNT = IDX_CURRENCY + 1;
+
     public static StockInfo Get(string content)
     {
         StockInfo info = new();
@@ -12,55 +63,67 @@ internal class StockInfo
             content = content.Remove(0, content.IndexOf("\"") + 1);
             content = content.Remove(content.IndexOf("\""), content.Length - 1 - content.IndexOf("\""));
             var args = content.Split('~');
-            info.StockName = args[1];
-            info.StockCode = args[2];
-            info.CurrentPrice = Utils.Parse(args[3]);
-            info.YesterdayClose = Utils.Parse(args[4]);
-            info.TodayOpen = Utils.Parse(args[5]);
-            info.Volume = long.Parse(args[6]);
-            info.OuterDisk = long.Parse(args[7]);
-            info.InnerDisk = long.Parse(args[8]);
-            info.Buy1 = Utils.Parse(args[9]);
-            info.Buy1Volume = long.Parse(args[10]);
-            info.Buy2 = Utils.Parse(args[11]);
-            info.Buy2Volume = long.Parse(args[12]);
-            info.Buy3 = Utils.Parse(args[13]);
-            info.Buy3Volume = long.Parse(args[14]);
-            info.Buy4 = Utils.Parse(args[15]);
-            info.Buy4Volume = long.Parse(args[16]);
-            info.Buy5 = Utils.Parse(args[17]);
-            info.Buy5Volume = long.Parse(args[18]);
-            info.Sell1 = Utils.Parse(args[19]);
-            info.Sell1Volume = long.Parse(args[20]);
-            info.Sell2 = Utils.Parse(args[21]);
-            info.Sell2Volume = long.Parse(args[22]);
-            info.Sell3 = Utils.Parse(args[23]);
-            info.Sell3Volume = long.Parse(args[24]);
-            info.Sell4 = Utils.Parse(args[25]);
-            info.Sell4Volume = long.Parse(args[26]);
-            info.Sell5 = Utils.Parse(args[27]);
-            info.Sell5Volume = long.Parse(args[28]);
-            info.RecentTransaction = args[29];
-            info.Time = DateTime.ParseExact(args[30], "yyyyMMddHHmmss", null);
-            info.PriceChange = Utils.Parse(args[31]);
-            info.PriceChangePercent = Utils.Parse(args[32]);
-            info.HighestPrice = Utils.Parse(args[33]);
-            info.LowestPrice = Utils.Parse(args[34]);
-            info.PriceVolumeAmount = args[35];
-            info.VolumeHand = long.Parse(args[36]);
-            info.Turnover = Utils.Parse(args[37]);
-            info.TurnoverRate = Utils.Parse(args[38]);
-            info.PE = Utils.Parse(args[39]);
-            //info.HighestPrice2_ = Utils.Parse(args[40]);
-            info.HighestPrice2 = Utils.Parse(args[41]);
-            info.LowestPrice2 = Utils.Parse(args[42]);
-            info.PriceChange2 = Utils.Parse(args[43]);
-            info.CirculationMarketValue = Utils.Parse(args[44]);
-            info.TotalMarketValue = Utils.Parse(args[45]);
-            info.PB = Utils.Parse(args[46]);
-            info.PriceLimitUp = Utils.Parse(args[47]);
-            info.PriceLimitDown = Utils.Parse(args[48]);
-            info.Currency = args[82];
+            if (args.Length < IDX_PRICE_CHANGE_PERCENT + 1)
+            {
+                Logger.Debug($"Response field count {args.Length} < {IDX_PRICE_CHANGE_PERCENT + 1}: {content}");
+                return null;
+            }
+
+            info.StockName = args[IDX_NAME];
+            info.StockCode = args[IDX_CODE];
+            info.CurrentPrice = Utils.Parse(args[IDX_CURRENT_PRICE]);
+            info.YesterdayClose = Utils.Parse(args[IDX_YESTERDAY_CLOSE]);
+            info.TodayOpen = Utils.Parse(args[IDX_TODAY_OPEN]);
+            info.PriceChange = Utils.Parse(args[IDX_PRICE_CHANGE]);
+            info.PriceChangePercent = Utils.Parse(args[IDX_PRICE_CHANGE_PERCENT]);
+            info.HighestPrice = args.Length > IDX_HIGHEST_PRICE ? Utils.Parse(args[IDX_HIGHEST_PRICE]) : 0;
+            info.LowestPrice = args.Length > IDX_LOWEST_PRICE ? Utils.Parse(args[IDX_LOWEST_PRICE]) : 0;
+
+            if (args.Length < MIN_FIELD_COUNT)
+            {
+                Logger.Debug($"Response field count {args.Length} < {MIN_FIELD_COUNT} (minimal mode): {content}");
+                return info;
+            }
+
+            info.Volume = long.Parse(args[IDX_VOLUME]);
+            info.OuterDisk = long.Parse(args[IDX_OUTER_DISK]);
+            info.InnerDisk = long.Parse(args[IDX_INNER_DISK]);
+            info.Buy1 = Utils.Parse(args[IDX_BUY1]);
+            info.Buy1Volume = long.Parse(args[IDX_BUY1_VOL]);
+            info.Buy2 = Utils.Parse(args[IDX_BUY2]);
+            info.Buy2Volume = long.Parse(args[IDX_BUY2_VOL]);
+            info.Buy3 = Utils.Parse(args[IDX_BUY3]);
+            info.Buy3Volume = long.Parse(args[IDX_BUY3_VOL]);
+            info.Buy4 = Utils.Parse(args[IDX_BUY4]);
+            info.Buy4Volume = long.Parse(args[IDX_BUY4_VOL]);
+            info.Buy5 = Utils.Parse(args[IDX_BUY5]);
+            info.Buy5Volume = long.Parse(args[IDX_BUY5_VOL]);
+            info.Sell1 = Utils.Parse(args[IDX_SELL1]);
+            info.Sell1Volume = long.Parse(args[IDX_SELL1_VOL]);
+            info.Sell2 = Utils.Parse(args[IDX_SELL2]);
+            info.Sell2Volume = long.Parse(args[IDX_SELL2_VOL]);
+            info.Sell3 = Utils.Parse(args[IDX_SELL3]);
+            info.Sell3Volume = long.Parse(args[IDX_SELL3_VOL]);
+            info.Sell4 = Utils.Parse(args[IDX_SELL4]);
+            info.Sell4Volume = long.Parse(args[IDX_SELL4_VOL]);
+            info.Sell5 = Utils.Parse(args[IDX_SELL5]);
+            info.Sell5Volume = long.Parse(args[IDX_SELL5_VOL]);
+            info.RecentTransaction = args[IDX_RECENT_TRANSACTION];
+            info.Time = DateTime.ParseExact(args[IDX_TIME], "yyyyMMddHHmmss", null);
+            info.PriceVolumeAmount = args[IDX_PRICE_VOLUME_AMOUNT];
+            info.VolumeHand = long.Parse(args[IDX_VOLUME_HAND]);
+            info.Turnover = Utils.Parse(args[IDX_TURNOVER]);
+            info.TurnoverRate = Utils.Parse(args[IDX_TURNOVER_RATE]);
+            info.PE = Utils.Parse(args[IDX_PE]);
+            info.HighestPrice2 = Utils.Parse(args[IDX_HIGHEST_PRICE2]);
+            info.LowestPrice2 = Utils.Parse(args[IDX_LOWEST_PRICE2]);
+            info.PriceChange2 = Utils.Parse(args[IDX_PRICE_CHANGE2]);
+            info.CirculationMarketValue = Utils.Parse(args[IDX_CIRCULATION_MARKET_VALUE]);
+            info.TotalMarketValue = Utils.Parse(args[IDX_TOTAL_MARKET_VALUE]);
+            info.PB = Utils.Parse(args[IDX_PB]);
+            info.PriceLimitUp = Utils.Parse(args[IDX_PRICE_LIMIT_UP]);
+            info.PriceLimitDown = Utils.Parse(args[IDX_PRICE_LIMIT_DOWN]);
+            info.Currency = args[IDX_CURRENCY];
         }
         catch (Exception e)
         {
@@ -267,4 +330,31 @@ internal class StockInfo
     {
         get; set;
     }        // 货币类型
+}
+
+/// <summary>
+/// 字段对齐方式
+/// </summary>
+internal enum FieldAlignment
+{
+    Left,
+    Center,
+    Right
+}
+
+/// <summary>
+/// 字段值（用于 Grid 显示）
+/// </summary>
+internal class FieldValue
+{
+    public string Key { get; set; }
+    public string Value { get; set; }
+    public FieldAlignment Alignment { get; set; } = FieldAlignment.Right;
+
+    public FieldValue(string key, string value, FieldAlignment alignment = FieldAlignment.Right)
+    {
+        Key = key;
+        Value = value;
+        Alignment = alignment;
+    }
 }
