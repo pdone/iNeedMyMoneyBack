@@ -240,7 +240,7 @@ public class Config
     /// <summary>
     /// 数据接口
     /// </summary>
-    public string Api { get; set; } = "http://qt.gtimg.cn";
+    public string Api { get; set; } = "https://qt.gtimg.cn";
     /// <summary>
     /// UA
     /// </summary>
@@ -248,6 +248,10 @@ public class Config
     public string FontFamilyMain { get; set; } = "Cascadia Mono,阿里巴巴普惠体 3.0,Courier New,Consolas,Microsoft Yahei UI,Arial";
     public string FontFamilyConfig { get; set; } = "Microsoft YaHei UI,Arial";
     public string FontFamilyMenu { get; set; } = "Microsoft YaHei UI,Arial";
+    /// <summary>
+    /// 主窗口字体大小
+    /// </summary>
+    public double FontSizeMain { get; set; } = 16;
     /// <summary>
     /// 隐藏边框
     /// </summary>
@@ -322,6 +326,14 @@ public class Config
     {
         get; set;
     } = DateTime.MaxValue;
+    /// <summary>
+    /// 双击行为 xueqiu:雪球 tonghuashun:同花顺
+    /// </summary>
+    public string DoubleClickAction { get; set; } = "xueqiu";
+    /// <summary>
+    /// MainGrid列间距
+    /// </summary>
+    public double GridColumnSpacing { get; set; } = 4;
     /// <summary>
     /// 字段显示控制
     /// </summary>

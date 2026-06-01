@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
@@ -27,6 +28,7 @@ public partial class ConfigWindow : Window
     private readonly StockConfigArray _stocks;
     private readonly MainWindow _mainWindow;
     private readonly string[] SupportExchange = ["sh", "sz", "bj", "us", "hk"];
+    private string _originalApi = "";
 
     public ConfigWindow(MainWindow mainWindow)
     {
@@ -52,6 +54,7 @@ public partial class ConfigWindow : Window
         // 先初始化颜色，因为卡片创建时需要使用颜色资源
         InitColor();
         InitBorderThickess(_conf.HideBorder);
+        Resources["MainOpacity"] = _conf.Opacity;
 
         // 初始化股票卡片列表
         RefreshStockCards();
@@ -84,28 +87,64 @@ public partial class ConfigWindow : Window
             }
         }
 
+        // 初始化更多设置Tab页
+        // 初始化字体大小ComboBox
+        var fontSizes = new[] { 12, 14, 16, 18, 20, 22, 24 };
+        foreach (var size in fontSizes)
+        {
+            cmbFontSize.Items.Add(new ComboBoxItem { Content = size.ToString(), Tag = (double)size });
+        }
+        cmbFontSize.SelectedIndex = Array.IndexOf(fontSizes, (int)_conf.FontSizeMain);
+        if (cmbFontSize.SelectedIndex < 0) cmbFontSize.SelectedIndex = 2; // default 16
+
+        // 初始化列间距ComboBox
+        var columnSpacings = new[] { 2, 4, 6, 8, 10, 12 };
+        foreach (var spacing in columnSpacings)
+        {
+            cmbColumnSpacing.Items.Add(new ComboBoxItem { Content = spacing.ToString(), Tag = (double)spacing });
+        }
+        cmbColumnSpacing.SelectedIndex = Array.IndexOf(columnSpacings, (int)_conf.GridColumnSpacing);
+        if (cmbColumnSpacing.SelectedIndex < 0) cmbColumnSpacing.SelectedIndex = 1; // default 4
+
+        // 初始化查询间隔ComboBox
+        var intervals = new[] { 2, 5, 10, 30, 60, 300, 600, 1800 };
+        foreach (var interval in intervals)
+        {
+            cmbInterval.Items.Add(new ComboBoxItem { Content = $"{interval}秒", Tag = interval });
+        }
+        cmbInterval.SelectedIndex = Array.IndexOf(intervals, _conf.Interval);
+        if (cmbInterval.SelectedIndex < 0) cmbInterval.SelectedIndex = 1; // default 5
+
+        _originalApi = _conf.Api;
+        txtApi.Text = _conf.Api;
+
+        // 初始化双击跳转ComboBox
+        cmbDoubleClickAction.Items.Add(new ComboBoxItem { Content = "雪球", Tag = "xueqiu" });
+        cmbDoubleClickAction.Items.Add(new ComboBoxItem { Content = "同花顺", Tag = "tonghuashun" });
+        cmbDoubleClickAction.SelectedIndex = _conf.DoubleClickAction == "tonghuashun" ? 1 : 0;
+
         InitLang();
     }
 
     private void RefreshStockCards()
     {
         stockListPanel.Children.Clear();
-        foreach (var stock in _stocks)
+        for (var i = 0; i < _stocks.Count; i++)
         {
-            var card = CreateStockCard(stock);
+            var card = CreateStockCard(_stocks[i], i);
             stockListPanel.Children.Add(card);
         }
     }
 
-    private Border CreateStockCard(StockConfig stock)
+    private Border CreateStockCard(StockConfig stock, int index)
     {
         var card = new Border
         {
-            Margin = new Thickness(0, 0, 0, 5),
+            Margin = new Thickness(0, 0, 3, 5),
             Padding = new Thickness(8),
             Background = Resources["CardBackground"] as SolidColorBrush,
             BorderBrush = Resources["CardBorder"] as SolidColorBrush,
-            BorderThickness = new Thickness(1),
+            BorderThickness = new Thickness(0),
             CornerRadius = new CornerRadius(5),
             Tag = stock
         };
@@ -149,9 +188,17 @@ public partial class ConfigWindow : Window
                 Margin = new Thickness(0, 3, 0, 0)
             };
             var parts = new List<string>();
-            if (stock.BuyPrice > 0) parts.Add($"{i18n[_conf.Lang]["col_buyprice"]}: {stock.BuyPrice:F2}");
-            if (stock.BuyCount > 0) parts.Add($"{i18n[_conf.Lang]["col_buycount"]}: {stock.BuyCount}");
-            buyInfo.Text = string.Join(" | ", parts);
+            if (stock.BuyPrice > 0)
+            {
+                parts.Add($"{i18n[_conf.Lang]["col_buyprice"]}: {stock.BuyPrice:F2}");
+            }
+
+            if (stock.BuyCount > 0)
+            {
+                parts.Add($"{i18n[_conf.Lang]["col_buycount"]}: {stock.BuyCount}");
+            }
+
+            buyInfo.Text = string.Join("  ", parts);
             infoPanel.Children.Add(buyInfo);
         }
 
@@ -166,10 +213,18 @@ public partial class ConfigWindow : Window
                 Margin = new Thickness(0, 2, 0, 0)
             };
             var parts = new List<string>();
-            if (stock.ReminderPriceUp > 0) parts.Add($"↑{stock.ReminderPriceUp:F2}");
-            if (stock.ReminderPriceDown > 0) parts.Add($"↓{stock.ReminderPriceDown:F2}");
+            if (stock.ReminderPriceUp > 0)
+            {
+                parts.Add($"↑{stock.ReminderPriceUp:F2}");
+            }
+
+            if (stock.ReminderPriceDown > 0)
+            {
+                parts.Add($"↓{stock.ReminderPriceDown:F2}");
+            }
+
             parts.Add($"{i18n[_conf.Lang]["col_ReminderTimes"]}: {stock.ReminderTimes}");
-            reminderInfo.Text = string.Join(" ", parts);
+            reminderInfo.Text = string.Join("  ", parts);
             infoPanel.Children.Add(reminderInfo);
         }
 
@@ -182,6 +237,28 @@ public partial class ConfigWindow : Window
             Orientation = Orientation.Horizontal,
             VerticalAlignment = VerticalAlignment.Center
         };
+
+        var moveUpBtn = new Button
+        {
+            Content = Symbols.ArrowUp,
+            FontSize = 11,
+            Padding = new Thickness(6, 2, 6, 2),
+            Margin = new Thickness(2, 0, 2, 0),
+            Tag = stock,
+            Visibility = index == 0 ? Visibility.Collapsed : Visibility.Visible
+        };
+        moveUpBtn.Click += Btn_Move_Stock_Up_Click;
+
+        var moveDownBtn = new Button
+        {
+            Content = Symbols.ArrowDown,
+            FontSize = 11,
+            Padding = new Thickness(6, 2, 6, 2),
+            Margin = new Thickness(2, 0, 2, 0),
+            Tag = stock,
+            Visibility = index == _stocks.Count - 1 ? Visibility.Collapsed : Visibility.Visible
+        };
+        moveDownBtn.Click += Btn_Move_Stock_Down_Click;
 
         var editBtn = new Button
         {
@@ -203,6 +280,8 @@ public partial class ConfigWindow : Window
         };
         deleteBtn.Click += Btn_Delete_Stock_Click;
 
+        buttonPanel.Children.Add(moveUpBtn);
+        buttonPanel.Children.Add(moveDownBtn);
         buttonPanel.Children.Add(editBtn);
         buttonPanel.Children.Add(deleteBtn);
 
@@ -212,7 +291,10 @@ public partial class ConfigWindow : Window
         card.Child = grid;
         card.MouseLeftButtonDown += (_, e) =>
         {
-            if (e.ClickCount == 2) ShowEditDialog(stock);
+            if (e.ClickCount == 2)
+            {
+                ShowEditDialog(stock);
+            }
         };
         return card;
     }
@@ -242,27 +324,27 @@ public partial class ConfigWindow : Window
 
         if (StockConfigArray.ImportantIndexs.Any(x => x.Code == code))
         {
-            MessageBox.Show(i18n[_conf.Lang]["msg_index_not_support_add"], i18n[_conf.Lang]["ui_title_warn"]);
+            ShowMessage(i18n[_conf.Lang]["msg_index_not_support_add"], i18n[_conf.Lang]["ui_title_warn"]);
             return;
         }
 
         var startWith = code.Length >= 2 ? code.Substring(0, 2) : "";
         if (!SupportExchange.Contains(startWith))
         {
-            MessageBox.Show(string.Format(i18n[_conf.Lang]["msg_exchange_not_support"], string.Join("、", SupportExchange)), i18n[_conf.Lang]["ui_title_warn"]);
+            ShowMessage(string.Format(i18n[_conf.Lang]["msg_exchange_not_support"], string.Join("、", SupportExchange)), i18n[_conf.Lang]["ui_title_warn"]);
             return;
         }
 
         if (_stocks.Any(x => x.Code == code))
         {
-            MessageBox.Show(i18n[_conf.Lang]["msg_stock_exists"], i18n[_conf.Lang]["ui_title_warn"]);
+            ShowMessage(i18n[_conf.Lang]["msg_stock_exists"], i18n[_conf.Lang]["ui_title_warn"]);
             return;
         }
 
         var isValid = await _mainWindow.VerifyStockCode(code);
         if (!isValid)
         {
-            MessageBox.Show(i18n[_conf.Lang]["msg_stock_not_found"], i18n[_conf.Lang]["ui_title_warn"]);
+            ShowMessage(i18n[_conf.Lang]["msg_stock_not_found"], i18n[_conf.Lang]["ui_title_warn"]);
             return;
         }
 
@@ -299,7 +381,8 @@ public partial class ConfigWindow : Window
             Background = bgColor,
             Foreground = fgColor,
             FontFamily = FontFamily,
-            ResizeMode = ResizeMode.NoResize
+            ResizeMode = ResizeMode.NoResize,
+            Opacity = Opacity
         };
 
         // 继承配置界面的资源以适配深浅模式
@@ -315,7 +398,8 @@ public partial class ConfigWindow : Window
         txtBorder.SetValue(Border.BackgroundProperty, new TemplateBindingExtension(TextBox.BackgroundProperty));
         txtBorder.SetValue(Border.BorderBrushProperty, new TemplateBindingExtension(TextBox.BorderBrushProperty));
         txtBorder.SetValue(Border.BorderThicknessProperty, new TemplateBindingExtension(TextBox.BorderThicknessProperty));
-        txtBorder.SetValue(Border.CornerRadiusProperty, new CornerRadius(4));
+        txtBorder.SetValue(Border.CornerRadiusProperty, new CornerRadius(5));
+        txtBorder.SetValue(Border.PaddingProperty, new TemplateBindingExtension(TextBox.PaddingProperty));
         txtBorder.SetValue(Border.SnapsToDevicePixelsProperty, true);
         var scrollViewer = new FrameworkElementFactory(typeof(ScrollViewer), "PART_ContentHost");
         scrollViewer.SetValue(ScrollViewer.MarginProperty, new Thickness(0));
@@ -395,6 +479,10 @@ public partial class ConfigWindow : Window
             stock.ReminderPriceUp = ru;
             double.TryParse(txtReminderDown.Text, out var rd);
             stock.ReminderPriceDown = rd;
+            if (ru > 0 || rd > 0)
+            {
+                stock.ReminderTimes = 1;
+            }
             dialog.DialogResult = true;
             dialog.Close();
         };
@@ -405,8 +493,14 @@ public partial class ConfigWindow : Window
         };
         dialog.KeyDown += (_, e) =>
         {
-            if (e.Key == Key.Enter) okBtn.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-            else if (e.Key == Key.Escape) cancelBtn.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            if (e.Key == Key.Enter)
+            {
+                okBtn.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            }
+            else if (e.Key == Key.Escape)
+            {
+                cancelBtn.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            }
         };
         btnPanel.Children.Add(okBtn);
         btnPanel.Children.Add(cancelBtn);
@@ -431,15 +525,45 @@ public partial class ConfigWindow : Window
     {
         if (sender is Button btn && btn.Tag is StockConfig stock)
         {
-            var result = MessageBox.Show(
+            var result = ShowConfirm(
                 string.Format(i18n[_conf.Lang]["msg_confirm_delete"], stock.DisplayName),
-                i18n[_conf.Lang]["ui_title_confirm"],
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Question);
+                i18n[_conf.Lang]["ui_title_confirm"]);
 
-            if (result == MessageBoxResult.Yes)
+            if (result)
             {
                 _stocks.Remove(stock);
+                RefreshStockCards();
+                _mainWindow.MarkGridStructureDirty();
+                DataUpdate();
+            }
+        }
+    }
+
+    private void Btn_Move_Stock_Up_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button btn && btn.Tag is StockConfig stock)
+        {
+            var index = _stocks.IndexOf(stock);
+            if (index > 0)
+            {
+                _stocks.RemoveAt(index);
+                _stocks.Insert(index - 1, stock);
+                RefreshStockCards();
+                _mainWindow.MarkGridStructureDirty();
+                DataUpdate();
+            }
+        }
+    }
+
+    private void Btn_Move_Stock_Down_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button btn && btn.Tag is StockConfig stock)
+        {
+            var index = _stocks.IndexOf(stock);
+            if (index < _stocks.Count - 1)
+            {
+                _stocks.RemoveAt(index);
+                _stocks.Insert(index + 1, stock);
                 RefreshStockCards();
                 _mainWindow.MarkGridStructureDirty();
                 DataUpdate();
@@ -488,7 +612,7 @@ public partial class ConfigWindow : Window
 
     private void DataUpdate()
     {
-        MainWindow.g_conf_stocks_with_index = _stocks.Union(StockConfigArray.ImportantIndexs).ToList();
+        MainWindow.g_conf_stocks_with_index = [.. _stocks.Union(StockConfigArray.ImportantIndexs)];
         _mainWindow.DataUpdate(false);
     }
 
@@ -505,7 +629,6 @@ public partial class ConfigWindow : Window
         Resources["ScrollTrack"] = isDark ? new SolidColorBrush(Color.FromRgb(40, 40, 40)) : new SolidColorBrush(Color.FromRgb(240, 240, 240));
 
         border.Background = MainWindow.color_bg;
-        grid.Background = MainWindow.color_bg;
 
         // 刷新股票卡片以应用新颜色
         RefreshStockCards();
@@ -525,12 +648,36 @@ public partial class ConfigWindow : Window
 
         tab_stocks.Header = i18n[_conf.Lang]["tab_stocks"];
         tab_fields.Header = i18n[_conf.Lang]["tab_fields"];
+        tab_more_settings.Header = i18n[_conf.Lang]["tab_more_settings"];
         lbl_basic_fields.Text = i18n[_conf.Lang]["lbl_basic_fields"];
         lbl_index_fields.Text = i18n[_conf.Lang]["lbl_index_fields"];
         lbl_index_a.Text = i18n[_conf.Lang]["lbl_index_a"];
         lbl_index_hk.Text = i18n[_conf.Lang]["lbl_index_hk"];
         lbl_index_us.Text = i18n[_conf.Lang]["lbl_index_us"];
         lbl_extend_fields.Text = i18n[_conf.Lang]["lbl_extend_fields"];
+
+        // 更多设置Tab页
+        lbl_font_size.Text = i18n[_conf.Lang]["lbl_font_size"];
+        lbl_interval.Text = i18n[_conf.Lang]["lbl_interval"];
+        lbl_api.Text = i18n[_conf.Lang]["lbl_api"];
+        lbl_column_spacing.Text = i18n[_conf.Lang]["lbl_column_spacing"];
+        txtResetLabel.Text = i18n[_conf.Lang]["btn_reset_default"];
+        lbl_double_click_action.Text = i18n[_conf.Lang]["ui_double_click_action"];
+        if (cmbDoubleClickAction.Items.Count >= 2)
+        {
+            ((ComboBoxItem)cmbDoubleClickAction.Items[0]).Content = i18n[_conf.Lang]["ui_double_click_xueqiu"];
+            ((ComboBoxItem)cmbDoubleClickAction.Items[1]).Content = i18n[_conf.Lang]["ui_double_click_tonghuashun"];
+        }
+
+        // 更新查询间隔ComboBox的显示文本
+        if (cmbInterval.Items.Count >= 8)
+        {
+            var intervals = new[] { 2, 5, 10, 30, 60, 300, 600, 1800 };
+            for (int i = 0; i < intervals.Length; i++)
+            {
+                ((ComboBoxItem)cmbInterval.Items[i]).Content = $"{intervals[i]}{i18n[_conf.Lang]["interval_unit"]}";
+            }
+        }
 
         foreach (var child in FieldControls.Children)
         {
@@ -622,16 +769,319 @@ public partial class ConfigWindow : Window
 
     private static string GetIndexMarket(string key)
     {
-        if (!key.StartsWith(StockIndexPrefix)) return "";
+        if (!key.StartsWith(StockIndexPrefix))
+        {
+            return "";
+        }
+
         var code = key.Substring(StockIndexPrefix.Length);
-        if (code.StartsWith("hk")) return "hk";
-        if (code.StartsWith("us")) return "us";
+        if (code.StartsWith("hk"))
+        {
+            return "hk";
+        }
+
+        if (code.StartsWith("us"))
+        {
+            return "us";
+        }
+
         return "a";
     }
 
     private void Btn_Close_Click(object sender, RoutedEventArgs e)
     {
         Visibility = Visibility.Hidden;
+    }
+
+    private void Btn_Reset_Api_Click(object sender, RoutedEventArgs e)
+    {
+        cmbFontSize.SelectedIndex = 2; // 16
+        cmbInterval.SelectedIndex = 1; // 5秒
+        cmbColumnSpacing.SelectedIndex = 1; // 4
+        cmbDoubleClickAction.SelectedIndex = 0;// 雪球
+        txtApi.Text = "https://qt.gtimg.cn";
+    }
+
+    private async void Btn_Apply_Click(object sender, RoutedEventArgs e)
+    {
+        await ApplyApiAsync();
+    }
+
+    private async Task ApplyApiAsync()
+    {
+        // 验证API
+        var api = txtApi.Text?.Trim();
+        if (string.IsNullOrWhiteSpace(api))
+        {
+            ShowMessage(i18n[_conf.Lang]["msg_api_invalid"], i18n[_conf.Lang]["ui_title_warn"]);
+            return;
+        }
+
+        var isValid = await _mainWindow.VerifyApi(api);
+        if (!isValid)
+        {
+            ShowMessage(i18n[_conf.Lang]["msg_api_invalid"], i18n[_conf.Lang]["ui_title_warn"]);
+            return;
+        }
+
+        // 应用API设置
+        _conf.Api = api;
+        _originalApi = api;
+        _conf.Save();
+        _mainWindow.UpdateRestClient(api);
+        _mainWindow.MarkGridStructureDirty();
+        _mainWindow.DataUpdate();
+
+        // 显示"已应用"状态
+        txtApiApply.Text = i18n[_conf.Lang]["btn_applied"];
+        txtApiApply.Foreground = Brushes.Green;
+        txtApiApply.Visibility = Visibility.Visible;
+
+        // 2秒后移除
+        var timer = new System.Windows.Threading.DispatcherTimer
+        {
+            Interval = TimeSpan.FromSeconds(2)
+        };
+        timer.Tick += (_, __) =>
+        {
+            txtApiApply.Visibility = Visibility.Collapsed;
+            timer.Stop();
+        };
+        timer.Start();
+    }
+
+    private void CmbDoubleClickAction_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (cmbDoubleClickAction.SelectedItem is ComboBoxItem item)
+        {
+            _conf.DoubleClickAction = item.Tag.ToString();
+            _conf.Save();
+        }
+    }
+
+    private void CmbFontSize_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (cmbFontSize.SelectedItem is ComboBoxItem item && item.Tag is double fontSize)
+        {
+            _conf.FontSizeMain = fontSize;
+            _conf.Save();
+            _mainWindow.UpdateFontSize(fontSize);
+            _mainWindow.MarkGridStructureDirty();
+            _mainWindow.DataUpdate();
+        }
+    }
+
+    private void CmbColumnSpacing_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (cmbColumnSpacing.SelectedItem is ComboBoxItem item && item.Tag is double spacing)
+        {
+            _conf.GridColumnSpacing = spacing;
+            _conf.Save();
+            _mainWindow.MarkGridStructureDirty();
+            _mainWindow.DataUpdate();
+        }
+    }
+
+    private void CmbInterval_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (cmbInterval.SelectedItem is ComboBoxItem item && item.Tag is int interval)
+        {
+            _conf.Interval = interval;
+            _conf.Save();
+        }
+    }
+
+    private void TxtApi_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        var currentApi = txtApi.Text?.Trim();
+        if (currentApi != _originalApi)
+        {
+            txtApiApply.Text = i18n[_conf.Lang]["btn_apply"];
+            txtApiApply.Foreground = Resources["TextColor"] as SolidColorBrush;
+            txtApiApply.Visibility = Visibility.Visible;
+        }
+        else
+        {
+            txtApiApply.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    private async void TxtApiApply_Click(object sender, MouseButtonEventArgs e)
+    {
+        await ApplyApiAsync();
+    }
+
+    private void ShowMessage(string message, string title)
+    {
+        var bgColor = Resources["CardBackground"] as SolidColorBrush;
+        var fgColor = Resources["TextColor"] as SolidColorBrush;
+        var borderColor = Resources["CardBorder"] as SolidColorBrush;
+
+        var dialog = new Window
+        {
+            Title = title,
+            Width = 320,
+            SizeToContent = SizeToContent.Height,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            Owner = this,
+            Background = bgColor,
+            Foreground = fgColor,
+            FontFamily = FontFamily,
+            ResizeMode = ResizeMode.NoResize,
+            Opacity = Opacity
+        };
+
+        dialog.Resources["TextColor"] = fgColor;
+        dialog.Resources["CardBorder"] = borderColor;
+        dialog.Resources["HoverBackground"] = Resources["HoverBackground"];
+
+        var mainPanel = new StackPanel { Margin = new Thickness(20) };
+
+        var txtBlock = new TextBlock
+        {
+            Text = message,
+            Foreground = fgColor,
+            TextWrapping = TextWrapping.Wrap,
+            Margin = new Thickness(0, 0, 0, 15)
+        };
+        mainPanel.Children.Add(txtBlock);
+
+        var btnTemplate = new ControlTemplate(typeof(Button));
+        var templateBorder = new FrameworkElementFactory(typeof(Border), "border");
+        templateBorder.SetValue(Border.PaddingProperty, new Thickness(6, 3, 6, 3));
+        templateBorder.SetValue(Border.BackgroundProperty, new TemplateBindingExtension(Button.BackgroundProperty));
+        templateBorder.SetResourceReference(Border.BorderBrushProperty, "CardBorder");
+        templateBorder.SetValue(Border.BorderThicknessProperty, new Thickness(1));
+        templateBorder.SetValue(Border.CornerRadiusProperty, new CornerRadius(5));
+        var contentPresenter = new FrameworkElementFactory(typeof(ContentPresenter));
+        contentPresenter.SetValue(ContentPresenter.HorizontalAlignmentProperty, HorizontalAlignment.Center);
+        contentPresenter.SetValue(ContentPresenter.VerticalAlignmentProperty, VerticalAlignment.Center);
+        templateBorder.AppendChild(contentPresenter);
+        btnTemplate.VisualTree = templateBorder;
+        var trigger = new Trigger { Property = Button.IsMouseOverProperty, Value = true };
+        trigger.Setters.Add(new Setter(Border.BackgroundProperty, new DynamicResourceExtension("HoverBackground"), "border"));
+        btnTemplate.Triggers.Add(trigger);
+
+        var okBtn = new Button
+        {
+            Content = i18n[_conf.Lang]["btn_ok"],
+            Width = 80,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Background = Brushes.Transparent,
+            Foreground = fgColor,
+            Template = btnTemplate
+        };
+        okBtn.Click += (_, __) => dialog.Close();
+        mainPanel.Children.Add(okBtn);
+
+        dialog.Content = mainPanel;
+        dialog.KeyDown += (_, e) => { if (e.Key == Key.Enter || e.Key == Key.Escape) { dialog.Close(); } };
+
+        dialog.SourceInitialized += (_, __) =>
+        {
+            SetWindowDarkMode(new WindowInteropHelper(dialog).Handle, _conf.DarkMode);
+        };
+
+        dialog.ShowDialog();
+    }
+
+    private bool ShowConfirm(string message, string title)
+    {
+        var bgColor = Resources["CardBackground"] as SolidColorBrush;
+        var fgColor = Resources["TextColor"] as SolidColorBrush;
+        var borderColor = Resources["CardBorder"] as SolidColorBrush;
+        var result = false;
+
+        var dialog = new Window
+        {
+            Title = title,
+            Width = 340,
+            SizeToContent = SizeToContent.Height,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            Owner = this,
+            Background = bgColor,
+            Foreground = fgColor,
+            FontFamily = FontFamily,
+            ResizeMode = ResizeMode.NoResize,
+            Opacity = Opacity
+        };
+
+        dialog.Resources["TextColor"] = fgColor;
+        dialog.Resources["CardBorder"] = borderColor;
+        dialog.Resources["HoverBackground"] = Resources["HoverBackground"];
+
+        var mainPanel = new StackPanel { Margin = new Thickness(20) };
+
+        var txtBlock = new TextBlock
+        {
+            Text = message,
+            Foreground = fgColor,
+            TextWrapping = TextWrapping.Wrap,
+            Margin = new Thickness(0, 0, 0, 15)
+        };
+        mainPanel.Children.Add(txtBlock);
+
+        var btnTemplate = new ControlTemplate(typeof(Button));
+        var templateBorder = new FrameworkElementFactory(typeof(Border), "border");
+        templateBorder.SetValue(Border.PaddingProperty, new Thickness(6, 3, 6, 3));
+        templateBorder.SetValue(Border.BackgroundProperty, new TemplateBindingExtension(Button.BackgroundProperty));
+        templateBorder.SetResourceReference(Border.BorderBrushProperty, "CardBorder");
+        templateBorder.SetValue(Border.BorderThicknessProperty, new Thickness(1));
+        templateBorder.SetValue(Border.CornerRadiusProperty, new CornerRadius(5));
+        var contentPresenter = new FrameworkElementFactory(typeof(ContentPresenter));
+        contentPresenter.SetValue(ContentPresenter.HorizontalAlignmentProperty, HorizontalAlignment.Center);
+        contentPresenter.SetValue(ContentPresenter.VerticalAlignmentProperty, VerticalAlignment.Center);
+        templateBorder.AppendChild(contentPresenter);
+        btnTemplate.VisualTree = templateBorder;
+        var trigger = new Trigger { Property = Button.IsMouseOverProperty, Value = true };
+        trigger.Setters.Add(new Setter(Border.BackgroundProperty, new DynamicResourceExtension("HoverBackground"), "border"));
+        btnTemplate.Triggers.Add(trigger);
+
+        var btnPanel = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            HorizontalAlignment = HorizontalAlignment.Center
+        };
+        var okBtn = new Button
+        {
+            Content = i18n[_conf.Lang]["btn_ok"],
+            Width = 80,
+            Margin = new Thickness(0, 0, 10, 0),
+            Background = Brushes.Transparent,
+            Foreground = fgColor,
+            Template = btnTemplate
+        };
+        var cancelBtn = new Button
+        {
+            Content = i18n[_conf.Lang]["btn_cancel"],
+            Width = 80,
+            Background = Brushes.Transparent,
+            Foreground = fgColor,
+            Template = btnTemplate
+        };
+        okBtn.Click += (_, __) => { result = true; dialog.Close(); };
+        cancelBtn.Click += (_, __) => dialog.Close();
+        btnPanel.Children.Add(okBtn);
+        btnPanel.Children.Add(cancelBtn);
+        mainPanel.Children.Add(btnPanel);
+
+        dialog.Content = mainPanel;
+        dialog.KeyDown += (_, e) =>
+        {
+            if (e.Key == Key.Enter) { result = true; dialog.Close(); }
+            else if (e.Key == Key.Escape)
+            {
+                dialog.Close();
+            }
+        };
+
+        dialog.SourceInitialized += (_, __) =>
+        {
+            SetWindowDarkMode(new WindowInteropHelper(dialog).Handle, _conf.DarkMode);
+        };
+
+        dialog.ShowDialog();
+        return result;
     }
 
     private void Window_KeyDown(object sender, KeyEventArgs e)

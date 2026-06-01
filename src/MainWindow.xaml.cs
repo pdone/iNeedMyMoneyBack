@@ -52,10 +52,10 @@ public partial class MainWindow : Window
     private bool _gridStructureDirty = true; // 标志位：Grid 结构是否需要重建
     private List<TextBlock> _headerTextBlocks = []; // 表头 TextBlock 缓存
     private List<List<TextBlock>> _dataTextBlocks = []; // 数据 TextBlock 缓存
-    private TextBlock _extendTextBlock; // 扩展字段 TextBlock 缓存
     private int _cachedColumnCount; // 缓存的列数
     private int _cachedRowCount; // 缓存的行数
     private bool _cachedShowFieldName; // 缓存的表头显示状态
+    private string _cachedExtendContent = ""; // 缓存的扩展字段内容
 
     public class StockDetailPage
     {
@@ -70,7 +70,7 @@ public partial class MainWindow : Window
         /// </summary>
         /// <param name="arg">股票名称 如 上证指数</param>
         /// <returns></returns>
-        public static string TongHuaShun(string arg) => HttpUtility.UrlEncode($"https://www.iwencai.com/unifiedwap/result?w={arg}");
+        public static string TongHuaShun(string arg) => $"https://www.iwencai.com/unifiedwap/result?w={arg}";
     }
     /// <summary>
     /// 增加菜单不透明度 避免与主界面重叠时显示不清除
@@ -80,30 +80,7 @@ public partial class MainWindow : Window
     /// 告警值 涨跌幅的绝对值大于此值时 界面高亮提示 单位 %
     /// </summary>
     private const int AlertValue = 9;
-    /// <summary>
-    /// 界面状态
-    /// </summary>
-    private enum UIStatus
-    {
-        Normal,
-        UpLimit,
-        DownLimit,
-        ProgramError,
-    }
-    /// <summary>
-    /// 常用符号
-    /// </summary>
-    private struct Symbols
-    {
-        public const string ArrowRight = "→";
-        public const string ArrowLeft = "←";
-        public const string ArrowLeftRight = "↔";
-        public const string ArrowUp = "↑";
-        public const string ArrowUpDown = "↕";
-        public const string Wave = "↗";
-        public const string RightUp = Wave;
-        public const string RightDown = "↘";
-    }
+
     #endregion
 
     #region 初始化界面
@@ -171,7 +148,8 @@ public partial class MainWindow : Window
         Closed += (_, __) => BeforeExit();
         g_worker.DoWork += DoWork;
         g_worker.RunWorkerAsync();
-        MainLabel.PreviewMouseDoubleClick += OnPreviewMouseDoubleClick_MainLabel;
+        MainGrid.PreviewMouseWheel += (_, e) => e.Handled = true;
+        MainGrid.MouseDown += OnMouseDown_OpenStockDetail;
         // 托盘图标
         TrayIcon.IconSource = TrayIconRes;
         TrayIcon.ToolTipText = $"{App.ProductName} v{App.ProductVersion}";
@@ -203,6 +181,7 @@ public partial class MainWindow : Window
         {
             Application.Current.Resources["FontMenu"] = new FontFamily(g_conf.FontFamilyMenu);
         }
+        FontSize = g_conf.FontSizeMain;
     }
 
     /// <summary>
@@ -329,6 +308,7 @@ public partial class MainWindow : Window
         if (g_configWindow != null)
         {
             g_configWindow.Opacity = Opacity;
+            g_configWindow.Resources["MainOpacity"] = Opacity;
         }
         menu_opacity.Header = string.Format(i18n[g_conf.Lang]["menu_opacity"], (Opacity * 100).ToString("f0"));
         var tempOpacity = Math.Min(Opacity + MenuOpacityAdded, 1);
@@ -343,50 +323,56 @@ public partial class MainWindow : Window
 
 
     /// <summary>
-    /// 左键双击主文本事件
+    /// 双击股票行跳转详情页（雪球/同花顺）
     /// </summary>
     /// <param name="sender"></param>
     /// <param name="e"></param>
-    private void OnPreviewMouseDoubleClick_MainLabel(object sender, MouseButtonEventArgs e)
+    private void OnMouseDown_OpenStockDetail(object sender, MouseButtonEventArgs e)
     {
-        if (g_conf.Transparent)// 透明背景时不触发
+        if (g_conf.Transparent)
         {
             return;
         }
-        if (e.ChangedButton != MouseButton.Left)// 仅左键触发
+        if (e.ChangedButton != MouseButton.Left)
         {
             return;
         }
-        if (sender is not Label tempLabel)
+        if (e.ClickCount != 2)
         {
             return;
         }
-        if (tempLabel.Content is not TextBlock tempTextBlock)
+        if (sender is not Grid grid)
         {
             return;
         }
-        var y = e.GetPosition(tempLabel).Y;
-        // 使用反射获取TextBlock的行数
-        var lineCountProperty = typeof(TextBlock).GetProperty("LineCount", BindingFlags.NonPublic | BindingFlags.Instance);
-        // 文本行数
-        var lineCount = (int)lineCountProperty.GetValue(tempTextBlock, null);
-        // 计算行高
-        var lineHeight = tempTextBlock.ActualHeight / lineCount;
-        if (y > g_conf_stocks.Count() * lineHeight)
+        if (_dataTextBlocks.Count == 0)
         {
             return;
         }
-        var idx = (int)(y / lineHeight);
-        if (idx < 0 || idx > g_conf_stocks.Count() - 1)
+        var pos = e.GetPosition(grid);
+        for (var i = 0; i < _dataTextBlocks.Count; i++)
         {
-            return;
+            var firstCell = _dataTextBlocks[i][0];
+            var cellTop = firstCell.TranslatePoint(new Point(0, 0), grid);
+            var cellBottom = cellTop.Y + firstCell.ActualHeight;
+            if (pos.Y >= cellTop.Y && pos.Y <= cellBottom)
+            {
+                if (i >= g_conf_stocks.Count)
+                {
+                    return;
+                }
+                var stock = g_conf_stocks.ElementAt(i);
+                if (stock.Code.IsNullOrWhiteSpace())
+                {
+                    return;
+                }
+                var url = g_conf.DoubleClickAction == "tonghuashun"
+                    ? StockDetailPage.TongHuaShun(stock.Code)
+                    : StockDetailPage.XueQiu(stock.Code);
+                Process.Start(url);
+                return;
+            }
         }
-        var stock = g_conf_stocks.ElementAt(idx);
-        if (stock.Code.IsNullOrWhiteSpace())
-        {
-            return;
-        }
-        Process.Start(StockDetailPage.XueQiu(stock.Code));
     }
 
     /// <summary>
@@ -718,7 +704,8 @@ public partial class MainWindow : Window
                 status = UIStatus.DownLimit;
             }
             SwitchToTextMode();
-            UpdateUI(text, status);
+            // 使用缓存的扩展字段内容
+            UpdateUI(text, status, _cachedExtendContent);
 
             lock (g_dataLock)
             {
@@ -804,10 +791,17 @@ public partial class MainWindow : Window
             // 整理扩展字段内容
             var extendContent = "";
             var lastMarket = "";
+            var hasIndexContent = false;
+            var addedGap = false;
             foreach (var item in g_conf.ExtendControls)
             {
                 if (!item.Key.StartsWith(StockIndexPrefix))
                 {
+                    if (!addedGap && hasIndexContent)
+                    {
+                        extendContent += Environment.NewLine;
+                        addedGap = true;
+                    }
                     if (!item.Visable)
                     {
                         if (item.NewLine) extendContent += Environment.NewLine;
@@ -843,7 +837,11 @@ public partial class MainWindow : Window
                 }
                 var idxNl = item.NewLine ? Environment.NewLine : "";
                 var idxInfo = StockConfigArray.ImportantIndexs[item.Key]?.IndexInfo;
-                if (idxInfo != null) extendContent += idxNl + idxInfo + " ";
+                if (idxInfo != null)
+                {
+                    extendContent += idxNl + idxInfo + " ";
+                    hasIndexContent = true;
+                }
             }
 
             var status = UIStatus.Normal;
@@ -878,7 +876,7 @@ public partial class MainWindow : Window
         Delay(g_conf.Interval < 2 ? 2000 : g_conf.Interval * 1000);
     }
 
-    private void UpdateUI(string msg, UIStatus status = UIStatus.Normal)
+    private void UpdateUI(string msg, UIStatus status = UIStatus.Normal, string extendContent = "")
     {
         if (this == null)
         {
@@ -888,6 +886,19 @@ public partial class MainWindow : Window
         Application.Current.Dispatcher.Invoke(() =>
         {
             MainTextBlock.Text = msg;
+            
+            // 更新扩展字段
+            if (!string.IsNullOrEmpty(extendContent))
+            {
+                ExtendTextBlock.Text = extendContent;
+                ExtendTextBlock.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                ExtendTextBlock.Text = "";
+                ExtendTextBlock.Visibility = Visibility.Collapsed;
+            }
+            
             if (status != UIStatus.Normal)
             {
                 UpdateColor(status);
@@ -916,7 +927,7 @@ public partial class MainWindow : Window
         border.Background = background;
 
         // 更新 Grid 中所有 TextBlock 的前景色
-        if (MainScrollViewer.Visibility == Visibility.Visible)
+        if (MainTextBlock.Visibility == Visibility.Collapsed)
         {
             foreach (var child in MainGrid.Children)
             {
@@ -939,14 +950,13 @@ public partial class MainWindow : Window
     /// <summary>
     /// 检查是否需要重建 Grid 结构
     /// </summary>
-    private bool NeedRebuildStructure(List<List<FieldValue>> allStocksData, string extendContent)
+    private bool NeedRebuildStructure(List<List<FieldValue>> allStocksData)
     {
         var showFieldName = g_conf.FieldControls.TryGetValue("ui_fieldname", out var showHeader) && showHeader;
         var fieldNames = GetFieldNames();
         var columnCount = fieldNames.Count;
         var dataRowCount = allStocksData.Count;
-        var hasExtend = !string.IsNullOrEmpty(extendContent);
-        var totalRows = (showFieldName ? 1 : 0) + dataRowCount + (hasExtend ? 1 : 0);
+        var totalRows = (showFieldName ? 1 : 0) + dataRowCount;
 
         return _gridStructureDirty ||
                columnCount != _cachedColumnCount ||
@@ -957,14 +967,13 @@ public partial class MainWindow : Window
     /// <summary>
     /// 重建 Grid 结构（清空并重新创建所有元素）
     /// </summary>
-    private void RebuildGridStructure(List<List<FieldValue>> allStocksData, string extendContent)
+    private void RebuildGridStructure(List<List<FieldValue>> allStocksData)
     {
         MainGrid.Children.Clear();
         MainGrid.RowDefinitions.Clear();
         MainGrid.ColumnDefinitions.Clear();
         _headerTextBlocks.Clear();
         _dataTextBlocks.Clear();
-        _extendTextBlock = null;
 
         if (allStocksData.Count == 0)
         {
@@ -995,14 +1004,14 @@ public partial class MainWindow : Window
         // 创建表头行（如果启用）
         if (showFieldName)
         {
-            MainGrid.RowDefinitions.Add(new RowDefinition());
+            MainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             for (var i = 0; i < fieldNames.Count; i++)
             {
                 var headerBlock = new TextBlock
                 {
                     Text = fieldNames[i],
                     FontWeight = FontWeights.Bold,
-                    Margin = new Thickness(2, 0, 2, 0),
+                    Margin = new Thickness(g_conf.GridColumnSpacing, 0, g_conf.GridColumnSpacing, 0),
                     HorizontalAlignment = HorizontalAlignment.Center,
                     Foreground = color_fg
                 };
@@ -1017,7 +1026,7 @@ public partial class MainWindow : Window
         // 创建数据行
         for (var rowIndex = 0; rowIndex < allStocksData.Count; rowIndex++)
         {
-            MainGrid.RowDefinitions.Add(new RowDefinition());
+            MainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             var rowData = allStocksData[rowIndex];
             var rowBlocks = new List<TextBlock>();
             for (var colIndex = 0; colIndex < rowData.Count && colIndex < columnCount; colIndex++)
@@ -1026,7 +1035,7 @@ public partial class MainWindow : Window
                 var textBlock = new TextBlock
                 {
                     Text = field.Value,
-                    Margin = new Thickness(2, 0, 2, 0),
+                    Margin = new Thickness(g_conf.GridColumnSpacing, 0, g_conf.GridColumnSpacing, 0),
                     Foreground = color_fg
                 };
                 textBlock.HorizontalAlignment = field.Alignment switch
@@ -1041,23 +1050,6 @@ public partial class MainWindow : Window
                 rowBlocks.Add(textBlock);
             }
             _dataTextBlocks.Add(rowBlocks);
-        }
-
-        // 添加扩展字段行（如果有）
-        if (!string.IsNullOrEmpty(extendContent))
-        {
-            var extRowIndex = MainGrid.RowDefinitions.Count;
-            MainGrid.RowDefinitions.Add(new RowDefinition());
-            _extendTextBlock = new TextBlock
-            {
-                Text = extendContent,
-                Margin = new Thickness(2, 0, 2, 0),
-                TextWrapping = TextWrapping.Wrap,
-                Foreground = color_fg
-            };
-            Grid.SetRow(_extendTextBlock, extRowIndex);
-            Grid.SetColumnSpan(_extendTextBlock, columnCount);
-            MainGrid.Children.Add(_extendTextBlock);
         }
 
         _cachedRowCount = MainGrid.RowDefinitions.Count;
@@ -1088,11 +1080,9 @@ public partial class MainWindow : Window
             }
         }
 
-        // 更新扩展字段行
-        if (_extendTextBlock != null)
-        {
-            _extendTextBlock.Text = extendContent;
-        }
+        // 更新扩展字段
+        ExtendTextBlock.Text = extendContent;
+        ExtendTextBlock.Visibility = string.IsNullOrEmpty(extendContent) ? Visibility.Collapsed : Visibility.Visible;
     }
 
     /// <summary>
@@ -1108,11 +1098,14 @@ public partial class MainWindow : Window
             return;
         }
 
+        // 缓存扩展字段内容
+        _cachedExtendContent = extendContent;
+
         Application.Current.Dispatcher.Invoke(() =>
         {
             // 切换到 Grid 模式
             MainTextBlock.Visibility = Visibility.Collapsed;
-            MainScrollViewer.Visibility = Visibility.Visible;
+            MainGrid.Visibility = Visibility.Visible;
 
             if (allStocksData.Count == 0)
             {
@@ -1121,21 +1114,21 @@ public partial class MainWindow : Window
                 MainGrid.ColumnDefinitions.Clear();
                 _headerTextBlocks.Clear();
                 _dataTextBlocks.Clear();
-                _extendTextBlock = null;
                 _cachedColumnCount = 0;
                 _cachedRowCount = 0;
+                ExtendTextBlock.Text = "";
+                ExtendTextBlock.Visibility = Visibility.Collapsed;
                 return;
             }
 
             // 检查是否需要重建结构
-            if (NeedRebuildStructure(allStocksData, extendContent))
+            if (NeedRebuildStructure(allStocksData))
             {
-                RebuildGridStructure(allStocksData, extendContent);
+                RebuildGridStructure(allStocksData);
             }
-            else
-            {
-                UpdateGridData(allStocksData, extendContent);
-            }
+            
+            // 更新数据和扩展字段
+            UpdateGridData(allStocksData, extendContent);
 
             if (status != UIStatus.Normal)
             {
@@ -1149,8 +1142,16 @@ public partial class MainWindow : Window
     /// </summary>
     private void SwitchToTextMode()
     {
-        MainTextBlock.Visibility = Visibility.Visible;
-        MainScrollViewer.Visibility = Visibility.Collapsed;
+        Application.Current.Dispatcher.Invoke(() =>
+        {
+            MainTextBlock.Visibility = Visibility.Visible;
+            MainGrid.Visibility = Visibility.Collapsed;
+            MainGrid.Children.Clear();
+            MainGrid.RowDefinitions.Clear();
+            MainGrid.ColumnDefinitions.Clear();
+            _gridStructureDirty = true; // 标记 Grid 结构需要重建，因为 MainGrid.Children 已被清空
+            // 保留 ExtendTextBlock 可见性，单行模式下也可以显示扩展数据
+        });
     }
     #endregion
 
@@ -1174,6 +1175,40 @@ public partial class MainWindow : Window
             Logger.Error(ex);
         }
         return false;
+    }
+
+    public async Task<bool> VerifyApi(string api)
+    {
+        try
+        {
+            var client = new RestClient(api);
+            client.AddDefaultHeader("User-Agent", g_conf.UserAgent);
+            var request = new RestRequest();
+            request.AddQueryParameter("q", "sh000001");
+            var response = await client.GetAsync(request);
+            if (response.IsSuccessStatusCode)
+            {
+                var content = response.Content;
+                var result = StockInfo.Get(content);
+                return result != null;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex);
+        }
+        return false;
+    }
+
+    public void UpdateRestClient(string api)
+    {
+        g_client = new RestClient(api);
+        g_client.AddDefaultHeader("User-Agent", g_conf.UserAgent);
+    }
+
+    public void UpdateFontSize(double fontSize)
+    {
+        this.FontSize = fontSize;
     }
 
     private async Task<StockInfo> Request(StockConfig sc, bool useCache)

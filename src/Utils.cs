@@ -13,6 +13,32 @@ namespace iNeedMyMoneyBack;
 
 public static class Utils
 {
+    /// <summary>
+    /// 界面状态
+    /// </summary>
+    public enum UIStatus
+    {
+        Normal,
+        UpLimit,
+        DownLimit,
+        ProgramError,
+    }
+    /// <summary>
+    /// 常用符号
+    /// </summary>
+    public struct Symbols
+    {
+        public const string ArrowRight = "→";
+        public const string ArrowLeft = "←";
+        public const string ArrowLeftRight = "↔";
+        public const string ArrowUp = "↑";
+        public const string ArrowDown = "↓";
+        public const string ArrowUpDown = "↕";
+        public const string Wave = "↗";
+        public const string RightUp = Wave;
+        public const string RightDown = "↘";
+    }
+
     #region 扩展方法
     private static readonly JsonSerializerOptions options = new()
     {
@@ -175,6 +201,9 @@ public static class Utils
         ["ui_nontrading"] = ["Non-trading", "非交易时间"],
         ["ui_getdatafialed"] = ["Failed to get data", "获取数据失败"],
         ["ui_main_label_tooltip"] = ["Double-click to view details{0}", "双击查看详情{0}"],
+        ["ui_double_click_action"] = ["Double-click action", "双击跳转"],
+        ["ui_double_click_xueqiu"] = ["Xueqiu", "雪球"],
+        ["ui_double_click_tonghuashun"] = ["Tonghuashun", "同花顺"],
 
         ["ui_title_tip"] = ["Tip", "提示"],
         ["ui_title_err"] = ["Error", "错误"],
@@ -231,6 +260,21 @@ public static class Utils
         ["ui_lowest_highest"] = ["Lowest Highest", "最低最高"],
         ["ui_limitup_limitdown"] = ["UpLimit DownLimit", "涨停跌停"],
 
+        ["tab_more_settings"] = ["More Settings", "更多设置"],
+        ["lbl_interval"] = ["Interval", "查询间隔"],
+        ["lbl_font_size"] = ["Font Size", "字体大小"],
+        ["lbl_column_spacing"] = ["Column Spacing", "列间距"],
+        ["lbl_api"] = ["API URL", "API地址"],
+        ["btn_apply"] = ["Apply", "应用"],
+        ["btn_applied"] = ["Applied", "已应用"],
+        ["msg_interval_invalid"] = ["Interval must be >= 2s", "间隔必须大于等于2秒"],
+        ["interval_unit"] = ["s", "秒"],
+        ["msg_font_size_invalid"] = ["Font size must be between 6 and 72", "字体大小必须在6到72之间"],
+        ["msg_column_spacing_invalid"] = ["Column spacing must be between 0 and 20", "列间距必须在0到20之间"],
+        ["msg_api_invalid"] = ["API verification failed, please check the URL", "API验证失败，请检查地址"],
+        ["msg_api_valid"] = ["API verification successful", "API验证成功"],
+        ["msg_apply_success"] = ["Applied successfully", "应用成功"],
+
         ["tab_stocks"] = ["Stocks", "股票管理"],
         ["tab_fields"] = ["Fields", "显示字段"],
         ["lbl_basic_fields"] = ["Basic Fields", "基础字段"],
@@ -242,6 +286,8 @@ public static class Utils
         ["btn_add_stock"] = ["Add", "添加"],
         ["btn_edit"] = ["Edit", "编辑"],
         ["btn_delete"] = ["Delete", "删除"],
+        ["btn_move_up"] = ["Move Up", "上移"],
+        ["btn_move_down"] = ["Move Down", "下移"],
         ["btn_ok"] = ["OK", "确定"],
         ["btn_cancel"] = ["Cancel", "取消"],
         ["btn_reset_default"] = ["Reset", "重置默认"],
@@ -300,7 +346,7 @@ public static class Utils
 
     public static void SetWindowDarkMode(IntPtr hwnd, bool isDark)
     {
-        int value = isDark ? 1 : 0;
+        var value = isDark ? 1 : 0;
         DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, ref value, sizeof(int));
     }
 

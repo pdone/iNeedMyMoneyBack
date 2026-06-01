@@ -13,6 +13,7 @@
         AllowsTransparency="True"
         Background="Transparent"
         FontFamily="{DynamicResource FontMain}"
+        FontSize="16"
         OpacityMask="White"
         ResizeMode="CanResizeWithGrip"
         WindowStyle="None"
@@ -265,25 +266,24 @@
                  Fill="{DynamicResource TextColor}"
                  Stroke="{DynamicResource SubMenuBackground}" />
         <Border Name="border"
-                Padding="1"
                 Background="#ddd"
                 BorderBrush="#000"
-                CornerRadius="0,15,0,15">
-            <Label Name="MainLabel"
-                   Padding="6,1"
-                   FontSize="16">
-                <Grid>
-                    <TextBlock Name="MainTextBlock" />
-                    <ScrollViewer Name="MainScrollViewer"
-                                  VerticalScrollBarVisibility="Hidden"
-                                  VerticalAlignment="Top"
-                                  Visibility="Visible">
-                        <Grid Name="MainGrid"
-                              HorizontalAlignment="Stretch"
-                              VerticalAlignment="Stretch" />
-                    </ScrollViewer>
-                </Grid>
-            </Label>
+                CornerRadius="0,15,0,15"
+                Padding="6,3">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <TextBlock Name="MainTextBlock" Padding="8,2"/>
+                <Grid Name="MainGrid"
+                      Grid.Row="0" />
+                <TextBlock Name="ExtendTextBlock"
+                           Grid.Row="1"
+                           Margin="2,0"
+                           TextWrapping="Wrap"
+                           Foreground="{DynamicResource TextColor}" />
+            </Grid>
         </Border>
     </Grid>
 </Window>
