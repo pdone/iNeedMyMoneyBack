@@ -42,7 +42,8 @@ vstest.console iNeedMyMoneyBack.Tests/bin/Debug/iNeedMyMoneyBack.Tests.dll
 ## 关键模式
 
 - **数据来源**：`http://qt.gtimg.cn` —— 腾讯股票 API，返回 `~` 分隔的字段。响应解析在 `StockInfo.Get()` 中，使用命名常量索引，有长度校验。
-- **股票代码格式**：`sh600519`、`sz300750`、`bj899050`（需要前缀）。内置指数：`sh000001`、`sz399001`、`sz399006`、`sz399300`、`bj899050`。
+- **股票代码格式**：`sh600519`、`sz300750`、`bj899050`、`usAAPL`、`hk00700`（需要前缀）。内置指数：`sh000001`、`sz399001`、`sz399006`、`sz399300`、`bj899050`、港股指数、美股指数。
+- **市场启用配置**：美股（`EnableUS`）和港股（`EnableHK`）默认禁用，需在 `更多设置` 中手动启用。启用后才可添加对应市场的股票和显示对应指数。配置版本 v6 新增。
 - **配置持久化**：`%AppData%/iNeedMyMoneyBack/config.json` 和 `stocks.json`。首次运行时自动写入默认值。Config 有版本号字段，支持迁移。
 - **多语言**：`Utils.cs` 中的内联字典（`LanguageDatas`），键为 `cn`/`en`。新增字符串在该字典中添加，不要用资源文件。
 - **线程**：`BackgroundWorker` 轮询循环，`Thread.Sleep()` 阻塞。共享状态通过 `g_dataLock` 同步。UI 更新通过 `Dispatcher.Invoke`。

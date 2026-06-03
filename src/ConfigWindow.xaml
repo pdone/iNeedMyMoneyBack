@@ -410,6 +410,7 @@
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
                                     </Grid.RowDefinitions>
                                     <!-- 第一行：主窗口字体大小 + 列间距设置 -->
                                     <TextBlock x:Name="lbl_font_size"
@@ -512,6 +513,39 @@
                                                    Visibility="Collapsed"
                                                    MouseLeftButtonDown="TxtApiApply_Click" />
                                     </Grid>
+                                    <!-- 第四行：启用美股/港股 -->
+                                    <WrapPanel Grid.Row="3"
+                                               Grid.Column="0"
+                                               Grid.ColumnSpan="4"
+                                               Margin="0,8,0,0"
+                                               Orientation="Horizontal">
+                                        <CheckBox x:Name="chk_enable_us"
+                                                  Margin="4,3"
+                                                  Checked="Chk_EnableMarket_Checked"
+                                                  Unchecked="Chk_EnableMarket_Unchecked">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock x:Name="txt_checkmark_us"
+                                                           Text="✔"
+                                                           Foreground="Green"
+                                                           Visibility="Collapsed"
+                                                           Margin="0,0,4,0" />
+                                                <TextBlock x:Name="txt_label_us" />
+                                            </StackPanel>
+                                        </CheckBox>
+                                        <CheckBox x:Name="chk_enable_hk"
+                                                  Margin="12,3,4,3"
+                                                  Checked="Chk_EnableMarket_Checked"
+                                                  Unchecked="Chk_EnableMarket_Unchecked">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock x:Name="txt_checkmark_hk"
+                                                           Text="✔"
+                                                           Foreground="Green"
+                                                           Visibility="Collapsed"
+                                                           Margin="0,0,4,0" />
+                                                <TextBlock x:Name="txt_label_hk" />
+                                            </StackPanel>
+                                        </CheckBox>
+                                    </WrapPanel>
                                 </Grid>
                                 <!-- 按钮区域 -->
                                 <StackPanel Orientation="Horizontal"

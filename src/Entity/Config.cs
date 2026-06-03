@@ -182,6 +182,21 @@ public class StockConfigArray : List<StockConfig>
     ];
 
     /// <summary>
+    /// 根据配置获取过滤后的重要指数集合
+    /// </summary>
+    public static StockConfigArray GetFilteredImportantIndexs(bool enableUS, bool enableHK)
+    {
+        var result = new StockConfigArray();
+        foreach (var index in ImportantIndexs)
+        {
+            if (index.Code.StartsWith("us") && !enableUS) continue;
+            if (index.Code.StartsWith("hk") && !enableHK) continue;
+            result.Add(index);
+        }
+        return result;
+    }
+
+    /// <summary>
     /// 加载股票数据
     /// </summary>
     /// <returns></returns>
@@ -226,12 +241,22 @@ public class StockConfigArray : List<StockConfig>
 
 public class Config
 {
-    private const int CurrentConfigVersion = 5;
+    private const int CurrentConfigVersion = 6;
 
     /// <summary>
     /// 配置文件版本号，用于迁移
     /// </summary>
     public int ConfigVersion { get; set; } = 0;
+
+    /// <summary>
+    /// 启用美股数据
+    /// </summary>
+    public bool EnableUS { get; set; } = false;
+
+    /// <summary>
+    /// 启用港股数据
+    /// </summary>
+    public bool EnableHK { get; set; } = false;
 
     /// <summary>
     /// 调试模式
@@ -496,6 +521,11 @@ public class Config
         {
             conf.FieldNewLines = null;
             Logger.Info($"Config v5: removed FieldNewLines (Grid layout no longer needs it)");
+        }
+        if (conf.ConfigVersion < 6)
+        {
+            // v6: EnableUS/EnableHK added, default false (no data migration needed)
+            Logger.Info($"Config v6: added EnableUS/EnableHK settings");
         }
         Logger.Info($"Config migrated to version {CurrentConfigVersion}");
     }

@@ -105,7 +105,16 @@ public partial class MainWindow : Window
             g_conf_stocks.Add(new StockConfig("sz300750"));
         }
 
-        g_conf_stocks_with_index = g_conf_stocks.Union(StockConfigArray.ImportantIndexs).ToList();
+        // 根据配置过滤指数和个股
+        var filteredIndexs = StockConfigArray.GetFilteredImportantIndexs(g_conf.EnableUS, g_conf.EnableHK);
+        var filteredStocks = new StockConfigArray();
+        foreach (var stock in g_conf_stocks)
+        {
+            if (stock.Code.StartsWith("us") && !g_conf.EnableUS) continue;
+            if (stock.Code.StartsWith("hk") && !g_conf.EnableHK) continue;
+            filteredStocks.Add(stock);
+        }
+        g_conf_stocks_with_index = filteredStocks.Union(filteredIndexs).ToList();
 
         if (g_client == null)
         {
@@ -830,6 +839,9 @@ public partial class MainWindow : Window
                 }
                 var market = item.Key.Substring(StockIndexPrefix.Length);
                 market = market.StartsWith("hk") ? "hk" : market.StartsWith("us") ? "us" : "a";
+                // 检查市场是否启用
+                if (market == "hk" && !g_conf.EnableHK) continue;
+                if (market == "us" && !g_conf.EnableUS) continue;
                 if (market != lastMarket)
                 {
                     if (lastMarket != "") extendContent += Environment.NewLine;
@@ -1156,7 +1168,7 @@ public partial class MainWindow : Window
     #endregion
 
     #region 请求数据
-    public async Task<bool> VerifyStockCode(string code)
+    internal async Task<StockInfo> VerifyStockCode(string code)
     {
         try
         {
@@ -1167,14 +1179,14 @@ public partial class MainWindow : Window
             {
                 var content = response.Content;
                 var result = StockInfo.Get(content);
-                return result != null;
+                return result;
             }
         }
         catch (Exception ex)
         {
             Logger.Error(ex);
         }
-        return false;
+        return null;
     }
 
     public async Task<bool> VerifyApi(string api)

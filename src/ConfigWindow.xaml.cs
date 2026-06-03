@@ -123,6 +123,16 @@ public partial class ConfigWindow : Window
         cmbDoubleClickAction.Items.Add(new ComboBoxItem { Content = "同花顺", Tag = "tonghuashun" });
         cmbDoubleClickAction.SelectedIndex = _conf.DoubleClickAction == "tonghuashun" ? 1 : 0;
 
+        // 初始化启用美股/港股CheckBox（先取消事件订阅，避免初始化时触发）
+        chk_enable_us.Checked -= Chk_EnableMarket_Checked;
+        chk_enable_hk.Checked -= Chk_EnableMarket_Checked;
+        chk_enable_us.IsChecked = _conf.EnableUS;
+        chk_enable_hk.IsChecked = _conf.EnableHK;
+        chk_enable_us.Checked += Chk_EnableMarket_Checked;
+        chk_enable_hk.Checked += Chk_EnableMarket_Checked;
+        UpdateMarketCheckBoxText();
+        UpdateIndexControlsVisibility();
+
         InitLang();
     }
 
@@ -335,20 +345,35 @@ public partial class ConfigWindow : Window
             return;
         }
 
+        // 检查市场是否启用
+        if (startWith == "us" && !_conf.EnableUS)
+        {
+            ShowMessage(string.Format(i18n[_conf.Lang]["msg_market_not_enabled"], i18n[_conf.Lang]["chk_enable_us"]), i18n[_conf.Lang]["ui_title_warn"]);
+            return;
+        }
+        if (startWith == "hk" && !_conf.EnableHK)
+        {
+            ShowMessage(string.Format(i18n[_conf.Lang]["msg_market_not_enabled"], i18n[_conf.Lang]["chk_enable_hk"]), i18n[_conf.Lang]["ui_title_warn"]);
+            return;
+        }
+
         if (_stocks.Any(x => x.Code == code))
         {
             ShowMessage(i18n[_conf.Lang]["msg_stock_exists"], i18n[_conf.Lang]["ui_title_warn"]);
             return;
         }
 
-        var isValid = await _mainWindow.VerifyStockCode(code);
-        if (!isValid)
+        var stockInfo = await _mainWindow.VerifyStockCode(code);
+        if (stockInfo == null)
         {
             ShowMessage(i18n[_conf.Lang]["msg_stock_not_found"], i18n[_conf.Lang]["ui_title_warn"]);
             return;
         }
 
-        var newStock = new StockConfig(code);
+        var newStock = new StockConfig(code)
+        {
+            Name = stockInfo.StockName
+        };
         _stocks.Add(newStock);
         RefreshStockCards();
         txtStockCode.Text = "";
@@ -612,7 +637,16 @@ public partial class ConfigWindow : Window
 
     private void DataUpdate()
     {
-        MainWindow.g_conf_stocks_with_index = [.. _stocks.Union(StockConfigArray.ImportantIndexs)];
+        // 根据配置过滤指数和个股
+        var filteredIndexs = StockConfigArray.GetFilteredImportantIndexs(_conf.EnableUS, _conf.EnableHK);
+        var filteredStocks = new StockConfigArray();
+        foreach (var stock in _stocks)
+        {
+            if (stock.Code.StartsWith("us") && !_conf.EnableUS) continue;
+            if (stock.Code.StartsWith("hk") && !_conf.EnableHK) continue;
+            filteredStocks.Add(stock);
+        }
+        MainWindow.g_conf_stocks_with_index = [.. filteredStocks.Union(filteredIndexs)];
         _mainWindow.DataUpdate(false);
     }
 
@@ -663,6 +697,7 @@ public partial class ConfigWindow : Window
         lbl_column_spacing.Text = i18n[_conf.Lang]["lbl_column_spacing"];
         txtResetLabel.Text = i18n[_conf.Lang]["btn_reset_default"];
         lbl_double_click_action.Text = i18n[_conf.Lang]["ui_double_click_action"];
+        UpdateMarketCheckBoxText();
         if (cmbDoubleClickAction.Items.Count >= 2)
         {
             ((ComboBoxItem)cmbDoubleClickAction.Items[0]).Content = i18n[_conf.Lang]["ui_double_click_xueqiu"];
@@ -1090,6 +1125,75 @@ public partial class ConfigWindow : Window
         {
             Btn_Close_Click(null, null);
         }
+    }
+
+    private void Chk_EnableMarket_Checked(object sender, RoutedEventArgs e)
+    {
+        if (sender is CheckBox checkBox)
+        {
+            var isUS = checkBox.Name == "chk_enable_us";
+            var result = ShowConfirm(
+                i18n[_conf.Lang]["msg_enable_us_hk_warn"],
+                i18n[_conf.Lang]["ui_title_warn"]);
+
+            if (result)
+            {
+                if (isUS)
+                    _conf.EnableUS = true;
+                else
+                    _conf.EnableHK = true;
+                _conf.Save();
+                UpdateMarketCheckBoxText();
+                UpdateIndexControlsVisibility();
+                _mainWindow.MarkGridStructureDirty();
+                DataUpdate();
+            }
+            else
+            {
+                // 用户取消，恢复未选中状态（避免循环触发）
+                checkBox.Checked -= Chk_EnableMarket_Checked;
+                checkBox.IsChecked = false;
+                checkBox.Checked += Chk_EnableMarket_Checked;
+            }
+        }
+    }
+
+    private void Chk_EnableMarket_Unchecked(object sender, RoutedEventArgs e)
+    {
+        if (sender is CheckBox checkBox)
+        {
+            var isUS = checkBox.Name == "chk_enable_us";
+            if (isUS)
+                _conf.EnableUS = false;
+            else
+                _conf.EnableHK = false;
+            _conf.Save();
+            UpdateMarketCheckBoxText();
+            UpdateIndexControlsVisibility();
+            _mainWindow.MarkGridStructureDirty();
+            DataUpdate();
+        }
+    }
+
+    private void UpdateMarketCheckBoxText()
+    {
+        // 设置固定文本（不再切换启用/禁用）
+        txt_label_us.Text = i18n[_conf.Lang]["chk_enable_us"];
+        txt_label_hk.Text = i18n[_conf.Lang]["chk_enable_hk"];
+        
+        // 控制绿色对号的显示/隐藏
+        txt_checkmark_us.Visibility = _conf.EnableUS ? Visibility.Visible : Visibility.Collapsed;
+        txt_checkmark_hk.Visibility = _conf.EnableHK ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void UpdateIndexControlsVisibility()
+    {
+        var hkVisible = _conf.EnableHK ? Visibility.Visible : Visibility.Collapsed;
+        var usVisible = _conf.EnableUS ? Visibility.Visible : Visibility.Collapsed;
+        StockIndexControlsHK.Visibility = hkVisible;
+        lbl_index_hk.Visibility = hkVisible;
+        StockIndexControlsUS.Visibility = usVisible;
+        lbl_index_us.Visibility = usVisible;
     }
 
     public void UpdateDataGrid()

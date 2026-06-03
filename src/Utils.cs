@@ -292,6 +292,13 @@ public static class Utils
         ["btn_cancel"] = ["Cancel", "取消"],
         ["btn_reset_default"] = ["Reset", "重置默认"],
         ["txt_stock_code_tip"] = ["Enter stock code (e.g. sh600519, usAAPL, hk00700)", "输入股票代码（如 sh600519、usAAPL、hk00700）"],
+
+        ["chk_enable_us"] = ["Enable US", "启用美股"],
+        ["chk_enable_hk"] = ["Enable HK", "启用港股"],
+        ["chk_disable_us"] = ["Disable US", "禁用美股"],
+        ["chk_disable_hk"] = ["Disable HK", "禁用港股"],
+        ["msg_enable_us_hk_warn"] = ["Due to API limitations, HK and US stock data may be delayed (not real-time) and may not be suitable for reference.\n\nAre you sure you want to enable?", "由于接口原因，获取到的港股和美股数据存在延迟（非实时数据），不具备参考意义。\n\n确认要开启吗？"],
+        ["msg_market_not_enabled"] = ["{0} is not enabled. Please enable it in \"More Settings\" first.", "{0}未启用，请先在\"更多设置\"中启用。"],
         ["ui_title_confirm"] = ["Confirm", "确认"],
         ["msg_index_not_support_add"] = ["Index cannot be added as stock, please enable in Index tab", "股指暂不支持添加，请在指数监控 Tab 中启用"],
         ["msg_exchange_not_support"] = ["Only supports {0} prefix (Shanghai, Shenzhen, Beijing, US, Hong Kong)", "目前只支持 {0} 开头，分别代表上海、深圳、北京、美股、港股"],
