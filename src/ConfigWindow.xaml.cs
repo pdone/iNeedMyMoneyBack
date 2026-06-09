@@ -133,6 +133,20 @@ public partial class ConfigWindow : Window
         UpdateMarketCheckBoxText();
         UpdateIndexControlsVisibility();
 
+        // 初始化排序字段ComboBox
+        var sortFields = new[] { "default", "changePercent", "buyPrice", "cost", "marketValue", "dayMake", "allMake", "yield" };
+        foreach (var field in sortFields)
+        {
+            cmbSortField.Items.Add(new ComboBoxItem { Tag = field });
+        }
+        cmbSortField.SelectedIndex = Array.IndexOf(sortFields, _conf.SortField);
+        if (cmbSortField.SelectedIndex < 0) cmbSortField.SelectedIndex = 0;
+
+        // 初始化排序方式ComboBox
+        cmbSortOrder.Items.Add(new ComboBoxItem { Tag = "desc" });
+        cmbSortOrder.Items.Add(new ComboBoxItem { Tag = "asc" });
+        cmbSortOrder.SelectedIndex = _conf.SortOrder == "asc" ? 1 : 0;
+
         InitLang();
     }
 
@@ -698,6 +712,21 @@ public partial class ConfigWindow : Window
         txtResetLabel.Text = i18n[_conf.Lang]["btn_reset_default"];
         lbl_double_click_action.Text = i18n[_conf.Lang]["ui_double_click_action"];
         UpdateMarketCheckBoxText();
+
+        // 排序下拉框
+        lbl_sort_field.Text = i18n[_conf.Lang]["lbl_sort_field"];
+        lbl_sort_order.Text = i18n[_conf.Lang]["lbl_sort_order"];
+        var sortFieldKeys = new[] { "default", "changePercent", "buyPrice", "cost", "marketValue", "dayMake", "allMake", "yield" };
+        for (int i = 0; i < sortFieldKeys.Length && i < cmbSortField.Items.Count; i++)
+        {
+            ((ComboBoxItem)cmbSortField.Items[i]).Content = i18n[_conf.Lang][$"sort_{sortFieldKeys[i]}"];
+        }
+        if (cmbSortOrder.Items.Count >= 2)
+        {
+            ((ComboBoxItem)cmbSortOrder.Items[0]).Content = i18n[_conf.Lang]["sort_desc"];
+            ((ComboBoxItem)cmbSortOrder.Items[1]).Content = i18n[_conf.Lang]["sort_asc"];
+        }
+
         if (cmbDoubleClickAction.Items.Count >= 2)
         {
             ((ComboBoxItem)cmbDoubleClickAction.Items[0]).Content = i18n[_conf.Lang]["ui_double_click_xueqiu"];
@@ -834,6 +863,8 @@ public partial class ConfigWindow : Window
         cmbInterval.SelectedIndex = 1; // 5秒
         cmbColumnSpacing.SelectedIndex = 1; // 4
         cmbDoubleClickAction.SelectedIndex = 0;// 雪球
+        cmbSortField.SelectedIndex = 0; // 默认
+        cmbSortOrder.SelectedIndex = 0; // 降序
         txtApi.Text = "https://qt.gtimg.cn";
     }
 
@@ -891,6 +922,28 @@ public partial class ConfigWindow : Window
         {
             _conf.DoubleClickAction = item.Tag.ToString();
             _conf.Save();
+        }
+    }
+
+    private void CmbSortField_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (cmbSortField.SelectedItem is ComboBoxItem item)
+        {
+            _conf.SortField = item.Tag.ToString();
+            _conf.Save();
+            _mainWindow.MarkGridStructureDirty();
+            _mainWindow.DataUpdate();
+        }
+    }
+
+    private void CmbSortOrder_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (cmbSortOrder.SelectedItem is ComboBoxItem item)
+        {
+            _conf.SortOrder = item.Tag.ToString();
+            _conf.Save();
+            _mainWindow.MarkGridStructureDirty();
+            _mainWindow.DataUpdate();
         }
     }
 

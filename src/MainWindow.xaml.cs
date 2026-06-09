@@ -742,6 +742,7 @@ public partial class MainWindow : Window
             var hasUpLimit = false;
             var hasDownLimit = false;
             var allStocksData = new List<List<FieldValue>>();// 所有股票的字段数据
+            var allStocksCodes = new List<string>();// 并行记录股票代码，用于排序
             var reminder = "";// 提醒信息
             foreach (var info in res)
             {
@@ -761,6 +762,7 @@ public partial class MainWindow : Window
                 }
                 var fieldValues = GetFieldValues(ref stock, info);
                 allStocksData.Add(fieldValues);
+                allStocksCodes.Add(stock.Code);
                 daymake += stock.DayMake;
                 allmake += stock.AllMake;
                 allcost += stock.Cost;
@@ -787,6 +789,33 @@ public partial class MainWindow : Window
                         stock.ReminderTimes--;
                     }
                 }
+            }
+
+            // 排序
+            if (g_conf.SortField != "default" && allStocksData.Count > 1)
+            {
+                var sortKeys = new double[allStocksData.Count];
+                for (int i = 0; i < allStocksCodes.Count; i++)
+                {
+                    var sc = g_conf_stocks_with_index.FirstOrDefault(x => x.Code == allStocksCodes[i]);
+                    if (sc == null) { sortKeys[i] = double.MinValue; continue; }
+                    sortKeys[i] = g_conf.SortField switch
+                    {
+                        "changePercent" => res.FirstOrDefault(x => x.StockCode.TrimStart('.') == sc.Code.Trim().Remove(0, 2))?.PriceChangePercent ?? 0,
+                        "buyPrice" => res.FirstOrDefault(x => x.StockCode.TrimStart('.') == sc.Code.Trim().Remove(0, 2))?.CurrentPrice ?? 0,
+                        "cost" => sc.Cost,
+                        "marketValue" => sc.MarketValue,
+                        "dayMake" => sc.DayMake,
+                        "allMake" => sc.AllMake,
+                        "yield" => sc.Yield,
+                        _ => 0
+                    };
+                }
+                var indices = Enumerable.Range(0, allStocksData.Count).ToArray();
+                Array.Sort(sortKeys, indices, g_conf.SortOrder == "asc" ? Comparer<double>.Default : Comparer<double>.Create((a, b) => b.CompareTo(a)));
+                var sortedData = new List<List<FieldValue>>(allStocksData.Count);
+                foreach (var idx in indices) sortedData.Add(allStocksData[idx]);
+                allStocksData = sortedData;
             }
 
             var allyield = 0.0;

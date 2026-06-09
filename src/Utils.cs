@@ -306,6 +306,19 @@ public static class Utils
         ["msg_stock_not_found"] = ["No data found, please check if the stock code is correct", "未查询到数据，请检查代码是否正确"],
         ["msg_confirm_delete"] = ["Delete {0}?", "确定删除 {0}？"],
         ["msg_confirm_reset"] = ["Reset all display fields to default?", "重置所有显示字段为默认？"],
+
+        ["lbl_sort_field"] = ["Sort Field", "排序字段"],
+        ["lbl_sort_order"] = ["Sort Order", "排序方式"],
+        ["sort_default"] = ["Default", "默认"],
+        ["sort_changePercent"] = ["Change", "涨跌幅"],
+        ["sort_buyPrice"] = ["Current Price", "买价"],
+        ["sort_cost"] = ["Cost", "总成本"],
+        ["sort_marketValue"] = ["Market Value", "总市值"],
+        ["sort_dayMake"] = ["Day P/L", "日盈"],
+        ["sort_allMake"] = ["Total P/L", "总盈"],
+        ["sort_yield"] = ["Yield", "收益率"],
+        ["sort_desc"] = ["Descending", "降序"],
+        ["sort_asc"] = ["Ascending", "升序"],
     };
 
     private static Dictionary<string, Dictionary<string, string>> _i18n = null;

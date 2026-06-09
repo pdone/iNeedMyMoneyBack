@@ -281,7 +281,7 @@
                 <TextBlock Name="ExtendTextBlock"
                            Grid.Row="1"
                            Margin="2,0"
-                           TextWrapping="Wrap"
+                           TextWrapping="NoWrap"
                            Foreground="{DynamicResource TextColor}" />
             </Grid>
         </Border>

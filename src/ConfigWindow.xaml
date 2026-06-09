@@ -474,8 +474,8 @@
                                               Padding="4"
                                               MinHeight="25"
                                               SelectionChanged="CmbDoubleClickAction_SelectionChanged" />
-                                    <!-- 第三行：API设置（独占整行） -->
-                                    <TextBlock x:Name="lbl_api"
+                                    <!-- 第三行：排序字段 + 排序方式 -->
+                                    <TextBlock x:Name="lbl_sort_field"
                                                Grid.Row="2"
                                                Grid.Column="0"
                                                Margin="4"
@@ -483,7 +483,38 @@
                                                VerticalAlignment="Center"
                                                HorizontalAlignment="Right"
                                                Foreground="{DynamicResource TextColor}" />
-                                    <Grid Grid.Row="2"
+                                    <ComboBox x:Name="cmbSortField"
+                                              Grid.Row="2"
+                                              Grid.Column="1"
+                                              Margin="2"
+                                              Padding="4"
+                                              MinHeight="25"
+                                              SelectionChanged="CmbSortField_SelectionChanged" />
+                                    <TextBlock x:Name="lbl_sort_order"
+                                               Grid.Row="2"
+                                               Grid.Column="2"
+                                               Margin="4"
+                                               FontWeight="Bold"
+                                               VerticalAlignment="Center"
+                                               HorizontalAlignment="Right"
+                                               Foreground="{DynamicResource TextColor}" />
+                                    <ComboBox x:Name="cmbSortOrder"
+                                              Grid.Row="2"
+                                              Grid.Column="3"
+                                              Margin="2"
+                                              Padding="4"
+                                              MinHeight="25"
+                                              SelectionChanged="CmbSortOrder_SelectionChanged" />
+                                    <!-- 第四行：API设置（独占整行） -->
+                                    <TextBlock x:Name="lbl_api"
+                                               Grid.Row="3"
+                                               Grid.Column="0"
+                                               Margin="4"
+                                               FontWeight="Bold"
+                                               VerticalAlignment="Center"
+                                               HorizontalAlignment="Right"
+                                               Foreground="{DynamicResource TextColor}" />
+                                    <Grid Grid.Row="3"
                                           Grid.Column="1"
                                           Grid.ColumnSpan="3">
                                         <TextBox x:Name="txtApi"
@@ -513,12 +544,17 @@
                                                    Visibility="Collapsed"
                                                    MouseLeftButtonDown="TxtApiApply_Click" />
                                     </Grid>
-                                    <!-- 第四行：启用美股/港股 -->
-                                    <WrapPanel Grid.Row="3"
-                                               Grid.Column="0"
-                                               Grid.ColumnSpan="4"
-                                               Margin="0,8,0,0"
-                                               Orientation="Horizontal">
+                                </Grid>
+                                <!-- 按钮区域 -->
+                                <Grid Margin="0,10,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <WrapPanel Grid.Column="0"
+                                               Orientation="Horizontal"
+                                               VerticalAlignment="Center">
                                         <CheckBox x:Name="chk_enable_us"
                                                   Margin="4,3"
                                                   Checked="Chk_EnableMarket_Checked"
@@ -546,16 +582,15 @@
                                             </StackPanel>
                                         </CheckBox>
                                     </WrapPanel>
+                                    <StackPanel Grid.Column="2"
+                                                Orientation="Horizontal"
+                                                VerticalAlignment="Center">
+                                        <Button x:Name="btn_reset_api"
+                                                Click="Btn_Reset_Api_Click"
+                                                Content="{Binding Text, ElementName=txtResetLabel}" />
+                                        <TextBlock x:Name="txtResetLabel" Visibility="Collapsed" />
+                                    </StackPanel>
                                 </Grid>
-                                <!-- 按钮区域 -->
-                                <StackPanel Orientation="Horizontal"
-                                            HorizontalAlignment="Right"
-                                            Margin="0,10,0,0">
-                                    <Button x:Name="btn_reset_api"
-                                            Click="Btn_Reset_Api_Click"
-                                            Content="{Binding Text, ElementName=txtResetLabel}" />
-                                    <TextBlock x:Name="txtResetLabel" Visibility="Collapsed" />
-                                </StackPanel>
                             </StackPanel>
                         </ScrollViewer>
                     </TabItem>

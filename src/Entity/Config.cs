@@ -241,7 +241,7 @@ public class StockConfigArray : List<StockConfig>
 
 public class Config
 {
-    private const int CurrentConfigVersion = 6;
+    private const int CurrentConfigVersion = 7;
 
     /// <summary>
     /// 配置文件版本号，用于迁移
@@ -359,6 +359,14 @@ public class Config
     /// MainGrid列间距
     /// </summary>
     public double GridColumnSpacing { get; set; } = 4;
+    /// <summary>
+    /// 排序字段：default/changePercent/buyPrice/cost/marketValue/dayMake/allMake/yield
+    /// </summary>
+    public string SortField { get; set; } = "default";
+    /// <summary>
+    /// 排序方式：asc/desc
+    /// </summary>
+    public string SortOrder { get; set; } = "desc";
     /// <summary>
     /// 字段显示控制
     /// </summary>
@@ -526,6 +534,11 @@ public class Config
         {
             // v6: EnableUS/EnableHK added, default false (no data migration needed)
             Logger.Info($"Config v6: added EnableUS/EnableHK settings");
+        }
+        if (conf.ConfigVersion < 7)
+        {
+            // v7: SortField/SortOrder added, default "default"/"desc" (no data migration needed)
+            Logger.Info($"Config v7: added SortField/SortOrder settings");
         }
         Logger.Info($"Config migrated to version {CurrentConfigVersion}");
     }
