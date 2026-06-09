@@ -35,4 +35,4 @@ jobs:
         with:
           draft: true
           generate_release_notes: true
-          files: src/iNeedMyMoneyBack/bin/Release/iNeedMyMoneyBack.exe
+          files: src/bin/Release/iNeedMyMoneyBack.exe
