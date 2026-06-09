@@ -1,0 +1,38 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Setup NuGet
+        uses: nuget/setup-nuget@v2
+
+      - name: Restore NuGet packages
+        run: nuget restore src/iNeedMyMoneyBack.sln
+
+      - name: Build Release
+        run: msbuild src/iNeedMyMoneyBack.sln -p:Configuration=Release -v:minimal
+
+      - name: Create Draft Release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          generate_release_notes: true
+          files: src/iNeedMyMoneyBack/bin/Release/iNeedMyMoneyBack.exe
