@@ -241,7 +241,7 @@ public class StockConfigArray : List<StockConfig>
 
 public class Config
 {
-    private const int CurrentConfigVersion = 7;
+    private const int CurrentConfigVersion = 8;
 
     /// <summary>
     /// 配置文件版本号，用于迁移
@@ -367,6 +367,10 @@ public class Config
     /// 排序方式：asc/desc
     /// </summary>
     public string SortOrder { get; set; } = "desc";
+    /// <summary>
+    /// 老板键：Ctrl+Oemtilde/Ctrl+D1/Ctrl+D2/Alt+Oemtilde/Alt+D1/Alt+D2
+    /// </summary>
+    public string BossKey { get; set; } = "Ctrl+Oemtilde";
     /// <summary>
     /// 字段显示控制
     /// </summary>
@@ -539,6 +543,11 @@ public class Config
         {
             // v7: SortField/SortOrder added, default "default"/"desc" (no data migration needed)
             Logger.Info($"Config v7: added SortField/SortOrder settings");
+        }
+        if (conf.ConfigVersion < 8)
+        {
+            // v8: BossKey added, default "Ctrl+Oemtilde" (no data migration needed)
+            Logger.Info($"Config v8: added BossKey setting");
         }
         Logger.Info($"Config migrated to version {CurrentConfigVersion}");
     }

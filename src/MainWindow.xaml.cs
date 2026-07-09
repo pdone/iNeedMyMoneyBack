@@ -283,7 +283,7 @@ public partial class MainWindow : Window
 
         var hwnd = new WindowInteropHelper(this).Handle;
         // 注销热键
-        UnregisterHotKey(hwnd, HotKeys.MainShow);
+        UnregisterHotKey(hwnd, BOSS_HOTKEY_ID);
     }
 
     /// <summary>
@@ -1549,17 +1549,31 @@ public partial class MainWindow : Window
     #endregion
 
     #region 隐藏窗口快捷键
-    public struct HotKeys
-    {
-        public static int MainShow => (int)System.Windows.Forms.Keys.Oemtilde;
-    }
+    private const int BOSS_HOTKEY_ID = 1;
+    private int _currentBossMod = MOD_CTRL;
+    private int _currentBossVk = (int)System.Windows.Forms.Keys.Oemtilde;
+
+    /// <summary>
+    /// 老板键选项：(配置键名, 多语言标签键)
+    /// </summary>
+    public static readonly (string ConfigKey, string LabelKey)[] BossKeyOptions =
+    [
+        ("Ctrl+Oemtilde", "hotkey_ctrl_tilde"),
+        ("Ctrl+D1", "hotkey_ctrl_1"),
+        ("Ctrl+D2", "hotkey_ctrl_2"),
+        ("Alt+Oemtilde", "hotkey_alt_tilde"),
+        ("Alt+D1", "hotkey_alt_1"),
+        ("Alt+D2", "hotkey_alt_2"),
+    ];
 
     protected override void OnSourceInitialized(EventArgs e)
     {
         base.OnSourceInitialized(e);
 
+        // 从配置读取老板键并注册
+        ParseBossKey(g_conf.BossKey, out _currentBossMod, out _currentBossVk);
         var hwnd = new WindowInteropHelper(this).Handle;
-        RegisterHotKey(hwnd, HotKeys.MainShow, MOD_CTRL, HotKeys.MainShow);
+        RegisterHotKey(hwnd, BOSS_HOTKEY_ID, _currentBossMod, _currentBossVk);
 
         var source = HwndSource.FromHwnd(hwnd);
         source.AddHook(WndProc);
@@ -1569,13 +1583,63 @@ public partial class MainWindow : Window
     {
         if (msg == 0x0312) // 0x0312 是 WM_HOTKEY 消息
         {
-            var hotKeyId = wparam.ToInt32();
-            if (hotKeyId == HotKeys.MainShow)
+            if (wparam.ToInt32() == BOSS_HOTKEY_ID)
             {
                 ShowOrHiden();
             }
         }
         return IntPtr.Zero;
+    }
+
+    /// <summary>
+    /// 重新注册老板键（由配置窗口调用）
+    /// </summary>
+    /// <param name="newBossKey">新的老板键配置键名</param>
+    public void ReRegisterBossKey(string newBossKey)
+    {
+        var hwnd = new WindowInteropHelper(this).Handle;
+        UnregisterHotKey(hwnd, BOSS_HOTKEY_ID);
+
+        ParseBossKey(newBossKey, out var mod, out var vk);
+        if (RegisterHotKey(hwnd, BOSS_HOTKEY_ID, mod, vk) == 0)
+        {
+            // 注册失败，快捷键被占用，恢复旧的注册
+            RegisterHotKey(hwnd, BOSS_HOTKEY_ID, _currentBossMod, _currentBossVk);
+            var displayName = GetHotKeyDisplayName(newBossKey);
+            var msg = string.Format(i18n[g_conf.Lang]["msg_hotkey_register_failed"], displayName);
+            g_configWindow?.ShowMessage(msg, i18n[g_conf.Lang]["ui_title_warn"]);
+            return;
+        }
+
+        _currentBossMod = mod;
+        _currentBossVk = vk;
+        g_conf.BossKey = newBossKey;
+        g_conf.Save();
+    }
+
+    /// <summary>
+    /// 解析老板键配置字符串为 Win32 modifier 和 vk
+    /// </summary>
+    private static void ParseBossKey(string bossKey, out int modifier, out int vk)
+    {
+        var parts = bossKey.Split('+');
+        modifier = parts[0] == "Alt" ? MOD_ALT : MOD_CTRL;
+        vk = parts[1] switch
+        {
+            "Oemtilde" => (int)System.Windows.Forms.Keys.Oemtilde,
+            "D1" => (int)System.Windows.Forms.Keys.D1,
+            "D2" => (int)System.Windows.Forms.Keys.D2,
+            _ => (int)System.Windows.Forms.Keys.Oemtilde
+        };
+    }
+
+    /// <summary>
+    /// 获取老板键的显示名称
+    /// </summary>
+    private static string GetHotKeyDisplayName(string configKey)
+    {
+        var opt = Array.Find(BossKeyOptions, x => x.ConfigKey == configKey);
+        return opt.LabelKey != null ? i18n[g_conf.Lang][opt.LabelKey] : configKey;
     }
 
     private void ShowOrHiden()

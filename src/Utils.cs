@@ -319,6 +319,15 @@ public static class Utils
         ["sort_yield"] = ["Yield", "收益率"],
         ["sort_desc"] = ["Descending", "降序"],
         ["sort_asc"] = ["Ascending", "升序"],
+
+        ["lbl_boss_key"] = ["Boss Key", "老板键"],
+        ["hotkey_ctrl_tilde"] = ["Ctrl + ~", "Ctrl + ~"],
+        ["hotkey_ctrl_1"] = ["Ctrl + 1", "Ctrl + 1"],
+        ["hotkey_ctrl_2"] = ["Ctrl + 2", "Ctrl + 2"],
+        ["hotkey_alt_tilde"] = ["Alt + ~", "Alt + ~"],
+        ["hotkey_alt_1"] = ["Alt + 1", "Alt + 1"],
+        ["hotkey_alt_2"] = ["Alt + 2", "Alt + 2"],
+        ["msg_hotkey_register_failed"] = ["Hotkey {0} is already in use by another application, please choose a different one", "快捷键 {0} 已被其他程序占用，请选择其他快捷键"],
     };
 
     private static Dictionary<string, Dictionary<string, string>> _i18n = null;
@@ -421,6 +430,7 @@ public static class Utils
 
     #region 全局快捷键
     public const int MOD_CTRL = 0x0002; // Ctrl 键
+    public const int MOD_ALT = 0x0001;  // Alt 键
 
     [DllImport("user32.dll")]
     public static extern int RegisterHotKey(IntPtr hWnd, int id, int fsModifiers, int vk);

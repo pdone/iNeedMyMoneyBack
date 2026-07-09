@@ -411,6 +411,7 @@
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
                                     </Grid.RowDefinitions>
                                     <!-- 第一行：主窗口字体大小 + 列间距设置 -->
                                     <TextBlock x:Name="lbl_font_size"
@@ -505,8 +506,8 @@
                                               Padding="4"
                                               MinHeight="25"
                                               SelectionChanged="CmbSortOrder_SelectionChanged" />
-                                    <!-- 第四行：API设置（独占整行） -->
-                                    <TextBlock x:Name="lbl_api"
+                                    <!-- 第四行：老板键 -->
+                                    <TextBlock x:Name="lbl_boss_key"
                                                Grid.Row="3"
                                                Grid.Column="0"
                                                Margin="4"
@@ -514,7 +515,23 @@
                                                VerticalAlignment="Center"
                                                HorizontalAlignment="Right"
                                                Foreground="{DynamicResource TextColor}" />
-                                    <Grid Grid.Row="3"
+                                    <ComboBox x:Name="cmbBossKey"
+                                              Grid.Row="3"
+                                              Grid.Column="1"
+                                              Margin="2"
+                                              Padding="4"
+                                              MinHeight="25"
+                                              SelectionChanged="CmbBossKey_SelectionChanged" />
+                                    <!-- 第五行：API设置（独占整行） -->
+                                    <TextBlock x:Name="lbl_api"
+                                               Grid.Row="4"
+                                               Grid.Column="0"
+                                               Margin="4"
+                                               FontWeight="Bold"
+                                               VerticalAlignment="Center"
+                                               HorizontalAlignment="Right"
+                                               Foreground="{DynamicResource TextColor}" />
+                                    <Grid Grid.Row="4"
                                           Grid.Column="1"
                                           Grid.ColumnSpan="3">
                                         <TextBox x:Name="txtApi"

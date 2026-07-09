@@ -147,6 +147,14 @@ public partial class ConfigWindow : Window
         cmbSortOrder.Items.Add(new ComboBoxItem { Tag = "asc" });
         cmbSortOrder.SelectedIndex = _conf.SortOrder == "asc" ? 1 : 0;
 
+        // 初始化老板键ComboBox
+        foreach (var opt in MainWindow.BossKeyOptions)
+        {
+            cmbBossKey.Items.Add(new ComboBoxItem { Content = i18n[_conf.Lang][opt.LabelKey], Tag = opt.ConfigKey });
+        }
+        var bossIdx = Array.FindIndex(MainWindow.BossKeyOptions, x => x.ConfigKey == _conf.BossKey);
+        cmbBossKey.SelectedIndex = bossIdx >= 0 ? bossIdx : 0;
+
         InitLang();
     }
 
@@ -727,6 +735,13 @@ public partial class ConfigWindow : Window
             ((ComboBoxItem)cmbSortOrder.Items[1]).Content = i18n[_conf.Lang]["sort_asc"];
         }
 
+        // 老板键下拉框
+        lbl_boss_key.Text = i18n[_conf.Lang]["lbl_boss_key"];
+        for (int i = 0; i < MainWindow.BossKeyOptions.Length && i < cmbBossKey.Items.Count; i++)
+        {
+            ((ComboBoxItem)cmbBossKey.Items[i]).Content = i18n[_conf.Lang][MainWindow.BossKeyOptions[i].LabelKey];
+        }
+
         if (cmbDoubleClickAction.Items.Count >= 2)
         {
             ((ComboBoxItem)cmbDoubleClickAction.Items[0]).Content = i18n[_conf.Lang]["ui_double_click_xueqiu"];
@@ -865,6 +880,7 @@ public partial class ConfigWindow : Window
         cmbDoubleClickAction.SelectedIndex = 0;// 雪球
         cmbSortField.SelectedIndex = 0; // 默认
         cmbSortOrder.SelectedIndex = 0; // 降序
+        cmbBossKey.SelectedIndex = 0; // Ctrl + ~
         txtApi.Text = "https://qt.gtimg.cn";
     }
 
@@ -947,6 +963,15 @@ public partial class ConfigWindow : Window
         }
     }
 
+    private void CmbBossKey_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (cmbBossKey.SelectedItem is ComboBoxItem item)
+        {
+            var newBossKey = item.Tag.ToString();
+            _mainWindow.ReRegisterBossKey(newBossKey);
+        }
+    }
+
     private void CmbFontSize_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (cmbFontSize.SelectedItem is ComboBoxItem item && item.Tag is double fontSize)
@@ -999,7 +1024,7 @@ public partial class ConfigWindow : Window
         await ApplyApiAsync();
     }
 
-    private void ShowMessage(string message, string title)
+    public void ShowMessage(string message, string title)
     {
         var bgColor = Resources["CardBackground"] as SolidColorBrush;
         var fgColor = Resources["TextColor"] as SolidColorBrush;
