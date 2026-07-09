@@ -532,7 +532,7 @@ public partial class MainWindow : Window
             {
                 continue;
             }
-            var dot = res.StockName.EndsWith("ETF") ? "f3" : "f2";
+            var dot = res.IsETF ? "f3" : "f2";
             var alignment = kvp.Key switch
             {
                 "ui_yesterday_todayopen" or "ui_lowest_highest" or "ui_limitup_limitdown" => FieldAlignment.Center,
@@ -542,7 +542,7 @@ public partial class MainWindow : Window
             {
                 "ui_price" => res.CurrentPrice.ToString(dot),
                 "ui_change" => $"{res.PriceChangePercent:f2}%",
-                "ui_buy_price" => hold ? $"{sc.BuyPrice:f2}" : "",
+                "ui_buy_price" => hold ? sc.BuyPrice.ToString(dot) : "",
                 "ui_num" => hold ? $"{sc.BuyCount}" : "",
                 "ui_cost" => hold ? $"{sc.Cost:f0}" : "",
                 "ui_market_value" => hold ? $"{sc.MarketValue:f0}" : "",
@@ -594,13 +594,13 @@ public partial class MainWindow : Window
             {
                 continue;
             }
-            var dot = res.StockName.EndsWith("ETF") ? "f3" : "f2";
+            var dot = res.IsETF ? "f3" : "f2";
             var fieldData = kvp.Key switch
             {
                 //"ui_fieldname" => "",
                 "ui_price" => res.CurrentPrice.ToString(dot),
                 "ui_change" => $"{res.PriceChangePercent:f2}%",
-                "ui_buy_price" => hold ? $"{sc.BuyPrice:f2}" : "",
+                "ui_buy_price" => hold ? sc.BuyPrice.ToString(dot) : "",
                 "ui_num" => hold ? $"{sc.BuyCount}" : "",
                 "ui_cost" => hold ? $"{sc.Cost:f0}" : "",
                 "ui_market_value" => hold ? $"{sc.MarketValue:f0}" : "",

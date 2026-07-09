@@ -2,9 +2,17 @@
 
 namespace iNeedMyMoneyBack;
 
+/// <summary>
+/// 单只证券的行情快照数据模型。
+/// 数据来源于腾讯行情接口 <c>qt.gtimg.cn</c>，解析逻辑见 <see cref="Get"/>。
+/// 股票代码前缀约定见项目说明（如 sh600519、sz300750、bj899050、usAAPL、hk00700）。
+/// </summary>
 internal class StockInfo
 {
-    // 腾讯 qt.gtimg.cn 响应字段索引常量
+    // ===== 腾讯 qt.gtimg.cn 行情字段索引（0 基） =====
+    // 原始响应形如： v_sh600519="1~贵州茅台~600519~1480.00~...~"
+    // 即「等号右侧、首尾引号之间」的内容按 '~' 分隔后得到的数组下标。
+    // 修改/新增字段时，同步更新此处常量并在 Get() 中赋值即可。
     private const int IDX_NAME = 1;
     private const int IDX_CODE = 2;
     private const int IDX_CURRENT_PRICE = 3;
@@ -55,12 +63,24 @@ internal class StockInfo
     private const int IDX_CURRENCY = 82;
     private const int MIN_FIELD_COUNT = IDX_CURRENCY + 1;
 
+    /// <summary>
+    /// 将腾讯行情接口的原始响应文本解析为 <see cref="StockInfo"/> 实例。
+    /// </summary>
+    /// <param name="content">原始响应字符串，形如 <c>v_sh600519="1~贵州茅台~600519~...~"</c>。</param>
+    /// <returns>
+    /// 解析成功返回实例；字段数不足 <see cref="IDX_PRICE_CHANGE_PERCENT"/> 时返回 <c>null</c>；
+    /// 字段数介于 <see cref="IDX_PRICE_CHANGE_PERCENT"/> 与 <see cref="MIN_FIELD_COUNT"/> 之间时，
+    /// 返回「精简模式」实例（仅填充基础字段，其余保持默认值）；
+    /// 解析过程中抛出的任何异常均被捕获并返回 <c>null</c>。
+    /// </returns>
     public static StockInfo Get(string content)
     {
         StockInfo info = new();
         try
         {
+            // 去掉开头的 " 及其之前的内容（含等号右侧前缀）
             content = content.Remove(0, content.IndexOf("\"") + 1);
+            // 去掉结尾的 " 及其之后的内容，仅保留引号内的字段串
             content = content.Remove(content.IndexOf("\""), content.Length - 1 - content.IndexOf("\""));
             var args = content.Split('~');
             if (args.Length < IDX_PRICE_CHANGE_PERCENT + 1)
@@ -134,202 +154,372 @@ internal class StockInfo
         return info;
     }
 
+    /// <summary>
+    /// 股票名称
+    /// </summary>
     public string StockName
     {
         get; set;
-    }       // 股票名称
+    }
+    /// <summary>
+    /// 股票代码（请求接口时需要带前缀，此处是接口返回的，不含前缀，如 600519、300750、AAPL、00700）。
+    /// </summary>
     public string StockCode
     {
         get; set;
-    }       // 股票代码
+    }
+    /// <summary>
+    /// 当前价格（最新成交价）。
+    /// </summary>
     public double CurrentPrice
     {
         get; set;
-    }    // 当前价格
+    }
+    /// <summary>
+    /// 昨收价（前一交易日收盘价）。
+    /// </summary>
     public double YesterdayClose
     {
         get; set;
-    }  // 昨收
+    }
+    /// <summary>
+    /// 今开盘价。
+    /// </summary>
     public double TodayOpen
     {
         get; set;
-    }       // 今开
+    }
+    /// <summary>
+    /// 成交量（单位：手，1 手 = 100 股）。基础字段，精简模式下也可填充。
+    /// </summary>
     public long Volume
     {
         get; set;
-    }            // 成交量（手）
+    }
+    /// <summary>
+    /// 外盘：主动以卖出价成交的累计成交量（手），反映买盘力量。
+    /// </summary>
     public long OuterDisk
     {
         get; set;
-    }         // 外盘
+    }
+    /// <summary>
+    /// 内盘：主动以买入价成交的累计成交量（手），反映卖盘力量。
+    /// </summary>
     public long InnerDisk
     {
         get; set;
-    }         // 内盘
+    }
+    /// <summary>
+    /// 买一价（最高买价）。
+    /// </summary>
     public double Buy1
     {
         get; set;
-    }            // 买一
+    }
+    /// <summary>
+    /// 买一量（手）。
+    /// </summary>
     public long Buy1Volume
     {
         get; set;
-    }        // 买一量（手）
+    }
+    /// <summary>
+    /// 买二价。
+    /// </summary>
     public double Buy2
     {
         get; set;
-    }            // 买二
+    }
+    /// <summary>
+    /// 买二量（手）。
+    /// </summary>
     public long Buy2Volume
     {
         get; set;
-    }        // 买二量（手）
+    }
+    /// <summary>
+    /// 买三价。
+    /// </summary>
     public double Buy3
     {
         get; set;
-    }            // 买三
+    }
+    /// <summary>
+    /// 买三量（手）。
+    /// </summary>
     public long Buy3Volume
     {
         get; set;
-    }        // 买三量（手）
+    }
+    /// <summary>
+    /// 买四价。
+    /// </summary>
     public double Buy4
     {
         get; set;
-    }            // 买四
+    }
+    /// <summary>
+    /// 买四量（手）。
+    /// </summary>
     public long Buy4Volume
     {
         get; set;
-    }        // 买四量（手）
+    }
+    /// <summary>
+    /// 买五价。
+    /// </summary>
     public double Buy5
     {
         get; set;
-    }            // 买五
+    }
+    /// <summary>
+    /// 买五量（手）。
+    /// </summary>
     public long Buy5Volume
     {
         get; set;
-    }        // 买五量（手）
+    }
+    /// <summary>
+    /// 卖一价（最低卖价）。
+    /// </summary>
     public double Sell1
     {
         get; set;
-    }           // 卖一
+    }
+    /// <summary>
+    /// 卖一量（手）。
+    /// </summary>
     public long Sell1Volume
     {
         get; set;
-    }       // 卖一量（手）
+    }
+    /// <summary>
+    /// 卖二价。
+    /// </summary>
     public double Sell2
     {
         get; set;
-    }           // 卖二
+    }
+    /// <summary>
+    /// 卖二量（手）。
+    /// </summary>
     public long Sell2Volume
     {
         get; set;
-    }       // 卖二量（手）
+    }
+    /// <summary>
+    /// 卖三价。
+    /// </summary>
     public double Sell3
     {
         get; set;
-    }           // 卖三
+    }
+    /// <summary>
+    /// 卖三量（手）。
+    /// </summary>
     public long Sell3Volume
     {
         get; set;
-    }       // 卖三量（手）
+    }
+    /// <summary>
+    /// 卖四价。
+    /// </summary>
     public double Sell4
     {
         get; set;
-    }           // 卖四
+    }
+    /// <summary>
+    /// 卖四量（手）。
+    /// </summary>
     public long Sell4Volume
     {
         get; set;
-    }       // 卖四量（手）
+    }
+    /// <summary>
+    /// 卖五价。
+    /// </summary>
     public double Sell5
     {
         get; set;
-    }           // 卖五
+    }
+    /// <summary>
+    /// 卖五量（手）。
+    /// </summary>
     public long Sell5Volume
     {
         get; set;
-    }       // 卖五量（手）
+    }
+    /// <summary>
+    /// 最近一笔逐笔成交信息（原始字符串）。
+    /// </summary>
     public string RecentTransaction
     {
         get; set;
-    } // 最近逐笔成交
+    }
+    /// <summary>
+    /// 行情时间戳（格式 yyyyMMddHHmmss）。
+    /// </summary>
     public DateTime Time
     {
         get; set;
-    }          // 时间
+    }
+    /// <summary>
+    /// 涨跌额 = 当前价 - 昨收价。
+    /// </summary>
     public double PriceChange
     {
         get; set;
-    }     // 涨跌
+    }
+    /// <summary>
+    /// 涨跌幅（百分比，如 1.23 表示 +1.23%）。
+    /// </summary>
     public double PriceChangePercent
     {
         get; set;
-    }  // 涨跌%
+    }
+    /// <summary>
+    /// 当日最高价。基础字段，精简模式下也可填充。
+    /// </summary>
     public double HighestPrice
     {
         get; set;
-    }    // 最高
+    }
+    /// <summary>
+    /// 当日最低价。基础字段，精简模式下也可填充。
+    /// </summary>
     public double LowestPrice
     {
         get; set;
-    }     // 最低
+    }
+    /// <summary>
+    /// 价格/成交量（手）/成交额 组合串（原始字符串，含三段）。
+    /// </summary>
     public string PriceVolumeAmount
     {
         get; set;
-    }   // 价格/成交量（手）/成交额
+    }
+    /// <summary>
+    /// 成交量（手，扩展字段，完整模式下填充）。
+    /// </summary>
     public long VolumeHand
     {
         get; set;
-    }        // 成交量（手）
+    }
+    /// <summary>
+    /// 成交额（单位：万元，扩展字段）。
+    /// </summary>
     public double Turnover
     {
         get; set;
-    }        // 成交额（万）
+    }
+    /// <summary>
+    /// 换手率（百分比，扩展字段）。
+    /// </summary>
     public double TurnoverRate
     {
         get; set;
-    }    // 换手率
+    }
+    /// <summary>
+    /// 市盈率 TTM（扩展字段）。
+    /// </summary>
     public double PE
     {
         get; set;
-    }              // 市盈率
+    }
+    /// <summary>
+    /// 预留字段，当前 Get 中未赋值，请勿依赖。
+    /// </summary>
     public double HighestPrice2_
     {
         get; set;
-    }    // 最高
+    }
+    /// <summary>
+    /// 扩展最高价（扩展字段，完整模式下填充）。
+    /// </summary>
     public double HighestPrice2
     {
         get; set;
-    }    // 最高
+    }
+    /// <summary>
+    /// 扩展最低价（扩展字段，完整模式下填充）。
+    /// </summary>
     public double LowestPrice2
     {
         get; set;
-    }     // 最低
+    }
+    /// <summary>
+    /// 扩展涨跌幅（扩展字段，完整模式下填充）。
+    /// </summary>
     public double PriceChange2
     {
         get; set;
-    }     // 涨幅
+    }
+    /// <summary>
+    /// 流通市值（单位：元，扩展字段）。
+    /// </summary>
     public double CirculationMarketValue
     {
         get; set;
-    } // 流通市值
+    }
+    /// <summary>
+    /// 总市值（单位：元，扩展字段）。
+    /// </summary>
     public double TotalMarketValue
     {
         get; set;
-    }     // 总市值
+    }
+    /// <summary>
+    /// 市净率（扩展字段）。
+    /// </summary>
     public double PB
     {
         get; set;
-    }              // 市净率
+    }
+    /// <summary>
+    /// 涨停价（扩展字段）。
+    /// </summary>
     public double PriceLimitUp
     {
         get; set;
-    }    // 涨停价
+    }
+    /// <summary>
+    /// 跌停价（扩展字段）。
+    /// </summary>
     public double PriceLimitDown
     {
         get; set;
-    }  // 跌停价
+    }
+    /// <summary>
+    /// 货币类型（如 CNY / USD / HKD，扩展字段）。
+    /// </summary>
     public string Currency
     {
         get; set;
-    }        // 货币类型
+    }
+
+    /// <summary>
+    /// 是否为 ETF（场内交易型开放式指数基金等）。
+    /// 依据代码前缀判定（沪市 51/56/58 开头、深市 15/16 开头），
+    /// 名称以 "ETF" 结尾作为兜底，避免名称不带 ETF 后缀的货币/债券/黄金/跨境 ETF 误判。
+    /// </summary>
+    public bool IsETF
+    {
+        get
+        {
+            if (!string.IsNullOrEmpty(StockCode))
+            {
+                var num = StockCode;
+                if (num.StartsWith("51") || num.StartsWith("56") || num.StartsWith("58") ||
+                    num.StartsWith("15") || num.StartsWith("16"))
+                {
+                    Console.WriteLine(num);
+                    return true;
+                }
+            }
+            return StockName != null && StockName.Contains("ETF");
+        }
+    }
 }
 
 /// <summary>
