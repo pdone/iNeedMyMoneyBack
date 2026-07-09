@@ -110,8 +110,16 @@ public partial class MainWindow : Window
         var filteredStocks = new StockConfigArray();
         foreach (var stock in g_conf_stocks)
         {
-            if (stock.Code.StartsWith("us") && !g_conf.EnableUS) continue;
-            if (stock.Code.StartsWith("hk") && !g_conf.EnableHK) continue;
+            if (stock.Code.StartsWith("us") && !g_conf.EnableUS)
+            {
+                continue;
+            }
+
+            if (stock.Code.StartsWith("hk") && !g_conf.EnableHK)
+            {
+                continue;
+            }
+
             filteredStocks.Add(stock);
         }
         g_conf_stocks_with_index = filteredStocks.Union(filteredIndexs).ToList();
@@ -662,12 +670,34 @@ public partial class MainWindow : Window
 
     #region 更新界面
     /// <summary>
+    /// 将股票代码后缀归一化，用于配置代码与接口返回代码的匹配。
+    /// 腾讯美股/港股接口返回的 StockCode 会带交易所后缀（如 AAPL.OQ、00700.HK），
+    /// 而配置代码后缀为纯代码（AAPL、00700），比较前需去掉首个 '.' 之后的部分。
+    /// </summary>
+    private static string NormalizeSymbol(string symbol)
+    {
+        if (string.IsNullOrEmpty(symbol))
+        {
+            return "";
+        }
+
+        var dot = symbol.IndexOf('.');
+        return dot >= 0 ? symbol.Substring(0, dot) : symbol;
+    }
+
+    /// <summary>
     /// 更新界面显示内容
     /// </summary>
     /// <param name="useCache">是否使用上一次请求响应数据</param>
     public async Task DataUpdate(bool useCache = true)
     {
-        var isTradingTime = IsTradingTime();
+        // 仅在股票列表确实包含美股/港股时，才额外按各自市场的交易时段放行。
+        // A 股仍按原逻辑（IsTradingTime）判断；纯 A 股列表行为保持不变。
+        var hasUS = g_conf_stocks_with_index.Any(x => x.Code.StartsWith("us"));
+        var hasHK = g_conf_stocks_with_index.Any(x => x.Code.StartsWith("hk"));
+        var isTradingTime = IsTradingTime()
+            || (hasUS && Utils.IsUSMarketOpen())
+            || (hasHK && Utils.IsHKMarketOpen());
         if (!isTradingTime && !g_conf.Debug)// 非交易时间
         {
             SwitchToTextMode();
@@ -749,7 +779,9 @@ public partial class MainWindow : Window
                 var stock = g_conf_stocks_with_index.FirstOrDefault(x =>
                 {
                     if (x.Code.IsNullOrWhiteSpace() || x.Code.Length < 5) { return false; }
-                    return x.Code.Trim().Remove(0, 2) == info.StockCode.TrimStart('.');
+                    // 美股/港股接口返回的 StockCode 可能带交易所后缀（如 AAPL.OQ、00700.HK），
+                    // 而配置代码后缀为纯代码（AAPL、00700），比较前需去掉首个 '.' 之后的部分。
+                    return NormalizeSymbol(x.Code.Trim().Remove(0, 2)) == NormalizeSymbol(info.StockCode.TrimStart('.'));
                 });
                 if (stock == null || stock.Code.IsNullOrWhiteSpace())
                 {
@@ -795,14 +827,14 @@ public partial class MainWindow : Window
             if (g_conf.SortField != "default" && allStocksData.Count > 1)
             {
                 var sortKeys = new double[allStocksData.Count];
-                for (int i = 0; i < allStocksCodes.Count; i++)
+                for (var i = 0; i < allStocksCodes.Count; i++)
                 {
                     var sc = g_conf_stocks_with_index.FirstOrDefault(x => x.Code == allStocksCodes[i]);
                     if (sc == null) { sortKeys[i] = double.MinValue; continue; }
                     sortKeys[i] = g_conf.SortField switch
                     {
-                        "changePercent" => res.FirstOrDefault(x => x.StockCode.TrimStart('.') == sc.Code.Trim().Remove(0, 2))?.PriceChangePercent ?? 0,
-                        "buyPrice" => res.FirstOrDefault(x => x.StockCode.TrimStart('.') == sc.Code.Trim().Remove(0, 2))?.CurrentPrice ?? 0,
+                        "changePercent" => res.FirstOrDefault(x => NormalizeSymbol(x.StockCode.TrimStart('.')) == NormalizeSymbol(sc.Code.Trim().Remove(0, 2)))?.PriceChangePercent ?? 0,
+                        "buyPrice" => res.FirstOrDefault(x => NormalizeSymbol(x.StockCode.TrimStart('.')) == NormalizeSymbol(sc.Code.Trim().Remove(0, 2)))?.CurrentPrice ?? 0,
                         "cost" => sc.Cost,
                         "marketValue" => sc.MarketValue,
                         "dayMake" => sc.DayMake,
@@ -814,7 +846,11 @@ public partial class MainWindow : Window
                 var indices = Enumerable.Range(0, allStocksData.Count).ToArray();
                 Array.Sort(sortKeys, indices, g_conf.SortOrder == "asc" ? Comparer<double>.Default : Comparer<double>.Create((a, b) => b.CompareTo(a)));
                 var sortedData = new List<List<FieldValue>>(allStocksData.Count);
-                foreach (var idx in indices) sortedData.Add(allStocksData[idx]);
+                foreach (var idx in indices)
+                {
+                    sortedData.Add(allStocksData[idx]);
+                }
+
                 allStocksData = sortedData;
             }
 
@@ -842,10 +878,18 @@ public partial class MainWindow : Window
                     }
                     if (!item.Visable)
                     {
-                        if (item.NewLine) extendContent += Environment.NewLine;
+                        if (item.NewLine)
+                        {
+                            extendContent += Environment.NewLine;
+                        }
+
                         continue;
                     }
-                    if (!i18n[g_conf.Lang].TryGetValue(item.Key, out var field)) continue;
+                    if (!i18n[g_conf.Lang].TryGetValue(item.Key, out var field))
+                    {
+                        continue;
+                    }
+
                     var nl = item.NewLine ? Environment.NewLine : "";
                     var temp = item.Key switch
                     {
@@ -863,17 +907,33 @@ public partial class MainWindow : Window
                 // 指数：按市场分组，每个市场一行
                 if (!item.Visable)
                 {
-                    if (item.NewLine) extendContent += Environment.NewLine;
+                    if (item.NewLine)
+                    {
+                        extendContent += Environment.NewLine;
+                    }
+
                     continue;
                 }
                 var market = item.Key.Substring(StockIndexPrefix.Length);
                 market = market.StartsWith("hk") ? "hk" : market.StartsWith("us") ? "us" : "a";
                 // 检查市场是否启用
-                if (market == "hk" && !g_conf.EnableHK) continue;
-                if (market == "us" && !g_conf.EnableUS) continue;
+                if (market == "hk" && !g_conf.EnableHK)
+                {
+                    continue;
+                }
+
+                if (market == "us" && !g_conf.EnableUS)
+                {
+                    continue;
+                }
+
                 if (market != lastMarket)
                 {
-                    if (lastMarket != "") extendContent += Environment.NewLine;
+                    if (lastMarket != "")
+                    {
+                        extendContent += Environment.NewLine;
+                    }
+
                     lastMarket = market;
                 }
                 var idxNl = item.NewLine ? Environment.NewLine : "";
@@ -1260,7 +1320,10 @@ public partial class MainWindow : Window
             {
                 lock (g_dataLock)
                 {
-                    if (g_last_res != null) return g_last_res;
+                    if (g_last_res != null)
+                    {
+                        return g_last_res;
+                    }
                 }
                 return await Request(sc, false);
             }
@@ -1299,7 +1362,9 @@ public partial class MainWindow : Window
                 lock (g_dataLock)
                 {
                     if (g_last_res_set != null && g_last_res_set.Count > 0)
+                    {
                         return g_last_res_set;
+                    }
                 }
                 return await Request(scs, false);
             }

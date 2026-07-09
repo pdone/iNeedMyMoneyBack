@@ -95,7 +95,10 @@ public partial class ConfigWindow : Window
             cmbFontSize.Items.Add(new ComboBoxItem { Content = size.ToString(), Tag = (double)size });
         }
         cmbFontSize.SelectedIndex = Array.IndexOf(fontSizes, (int)_conf.FontSizeMain);
-        if (cmbFontSize.SelectedIndex < 0) cmbFontSize.SelectedIndex = 2; // default 16
+        if (cmbFontSize.SelectedIndex < 0)
+        {
+            cmbFontSize.SelectedIndex = 2; // default 16
+        }
 
         // 初始化列间距ComboBox
         var columnSpacings = new[] { 2, 4, 6, 8, 10, 12 };
@@ -104,7 +107,10 @@ public partial class ConfigWindow : Window
             cmbColumnSpacing.Items.Add(new ComboBoxItem { Content = spacing.ToString(), Tag = (double)spacing });
         }
         cmbColumnSpacing.SelectedIndex = Array.IndexOf(columnSpacings, (int)_conf.GridColumnSpacing);
-        if (cmbColumnSpacing.SelectedIndex < 0) cmbColumnSpacing.SelectedIndex = 1; // default 4
+        if (cmbColumnSpacing.SelectedIndex < 0)
+        {
+            cmbColumnSpacing.SelectedIndex = 1; // default 4
+        }
 
         // 初始化查询间隔ComboBox
         var intervals = new[] { 2, 5, 10, 30, 60, 300, 600, 1800 };
@@ -113,7 +119,10 @@ public partial class ConfigWindow : Window
             cmbInterval.Items.Add(new ComboBoxItem { Content = $"{interval}秒", Tag = interval });
         }
         cmbInterval.SelectedIndex = Array.IndexOf(intervals, _conf.Interval);
-        if (cmbInterval.SelectedIndex < 0) cmbInterval.SelectedIndex = 1; // default 5
+        if (cmbInterval.SelectedIndex < 0)
+        {
+            cmbInterval.SelectedIndex = 1; // default 5
+        }
 
         _originalApi = _conf.Api;
         txtApi.Text = _conf.Api;
@@ -140,7 +149,10 @@ public partial class ConfigWindow : Window
             cmbSortField.Items.Add(new ComboBoxItem { Tag = field });
         }
         cmbSortField.SelectedIndex = Array.IndexOf(sortFields, _conf.SortField);
-        if (cmbSortField.SelectedIndex < 0) cmbSortField.SelectedIndex = 0;
+        if (cmbSortField.SelectedIndex < 0)
+        {
+            cmbSortField.SelectedIndex = 0;
+        }
 
         // 初始化排序方式ComboBox
         cmbSortOrder.Items.Add(new ComboBoxItem { Tag = "desc" });
@@ -148,9 +160,9 @@ public partial class ConfigWindow : Window
         cmbSortOrder.SelectedIndex = _conf.SortOrder == "asc" ? 1 : 0;
 
         // 初始化老板键ComboBox
-        foreach (var opt in MainWindow.BossKeyOptions)
+        foreach (var (ConfigKey, LabelKey) in MainWindow.BossKeyOptions)
         {
-            cmbBossKey.Items.Add(new ComboBoxItem { Content = i18n[_conf.Lang][opt.LabelKey], Tag = opt.ConfigKey });
+            cmbBossKey.Items.Add(new ComboBoxItem { Content = i18n[_conf.Lang][LabelKey], Tag = ConfigKey });
         }
         var bossIdx = Array.FindIndex(MainWindow.BossKeyOptions, x => x.ConfigKey == _conf.BossKey);
         cmbBossKey.SelectedIndex = bossIdx >= 0 ? bossIdx : 0;
@@ -352,15 +364,18 @@ public partial class ConfigWindow : Window
             return;
         }
 
-        code = code.ToLower();
+        // 仅把交易所前缀（前 2 个字符）转为小写，保留代码后缀的原有大小写。
+        // 腾讯美股/港股接口对代码后缀大小写敏感（例如 usAAPL 有效、usaapl 无效），
+        // 因此不能对整个代码做 ToLower()，否则会查询不到行情。
+        var startWith = code.Length >= 2 ? code.Substring(0, 2).ToLower() : "";
+        code = startWith + (code.Length > 2 ? code.Substring(2) : "");
 
-        if (StockConfigArray.ImportantIndexs.Any(x => x.Code == code))
+        if (StockConfigArray.ImportantIndexs.Any(x => x.Code.Equals(code, StringComparison.OrdinalIgnoreCase)))
         {
             ShowMessage(i18n[_conf.Lang]["msg_index_not_support_add"], i18n[_conf.Lang]["ui_title_warn"]);
             return;
         }
 
-        var startWith = code.Length >= 2 ? code.Substring(0, 2) : "";
         if (!SupportExchange.Contains(startWith))
         {
             ShowMessage(string.Format(i18n[_conf.Lang]["msg_exchange_not_support"], string.Join("、", SupportExchange)), i18n[_conf.Lang]["ui_title_warn"]);
@@ -664,8 +679,16 @@ public partial class ConfigWindow : Window
         var filteredStocks = new StockConfigArray();
         foreach (var stock in _stocks)
         {
-            if (stock.Code.StartsWith("us") && !_conf.EnableUS) continue;
-            if (stock.Code.StartsWith("hk") && !_conf.EnableHK) continue;
+            if (stock.Code.StartsWith("us") && !_conf.EnableUS)
+            {
+                continue;
+            }
+
+            if (stock.Code.StartsWith("hk") && !_conf.EnableHK)
+            {
+                continue;
+            }
+
             filteredStocks.Add(stock);
         }
         MainWindow.g_conf_stocks_with_index = [.. filteredStocks.Union(filteredIndexs)];
@@ -725,7 +748,7 @@ public partial class ConfigWindow : Window
         lbl_sort_field.Text = i18n[_conf.Lang]["lbl_sort_field"];
         lbl_sort_order.Text = i18n[_conf.Lang]["lbl_sort_order"];
         var sortFieldKeys = new[] { "default", "changePercent", "buyPrice", "cost", "marketValue", "dayMake", "allMake", "yield" };
-        for (int i = 0; i < sortFieldKeys.Length && i < cmbSortField.Items.Count; i++)
+        for (var i = 0; i < sortFieldKeys.Length && i < cmbSortField.Items.Count; i++)
         {
             ((ComboBoxItem)cmbSortField.Items[i]).Content = i18n[_conf.Lang][$"sort_{sortFieldKeys[i]}"];
         }
@@ -737,7 +760,7 @@ public partial class ConfigWindow : Window
 
         // 老板键下拉框
         lbl_boss_key.Text = i18n[_conf.Lang]["lbl_boss_key"];
-        for (int i = 0; i < MainWindow.BossKeyOptions.Length && i < cmbBossKey.Items.Count; i++)
+        for (var i = 0; i < MainWindow.BossKeyOptions.Length && i < cmbBossKey.Items.Count; i++)
         {
             ((ComboBoxItem)cmbBossKey.Items[i]).Content = i18n[_conf.Lang][MainWindow.BossKeyOptions[i].LabelKey];
         }
@@ -752,7 +775,7 @@ public partial class ConfigWindow : Window
         if (cmbInterval.Items.Count >= 8)
         {
             var intervals = new[] { 2, 5, 10, 30, 60, 300, 600, 1800 };
-            for (int i = 0; i < intervals.Length; i++)
+            for (var i = 0; i < intervals.Length; i++)
             {
                 ((ComboBoxItem)cmbInterval.Items[i]).Content = $"{intervals[i]}{i18n[_conf.Lang]["interval_unit"]}";
             }
@@ -1217,9 +1240,14 @@ public partial class ConfigWindow : Window
             if (result)
             {
                 if (isUS)
+                {
                     _conf.EnableUS = true;
+                }
                 else
+                {
                     _conf.EnableHK = true;
+                }
+
                 _conf.Save();
                 UpdateMarketCheckBoxText();
                 UpdateIndexControlsVisibility();
@@ -1242,9 +1270,14 @@ public partial class ConfigWindow : Window
         {
             var isUS = checkBox.Name == "chk_enable_us";
             if (isUS)
+            {
                 _conf.EnableUS = false;
+            }
             else
+            {
                 _conf.EnableHK = false;
+            }
+
             _conf.Save();
             UpdateMarketCheckBoxText();
             UpdateIndexControlsVisibility();

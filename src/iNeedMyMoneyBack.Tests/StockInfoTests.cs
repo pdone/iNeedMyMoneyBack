@@ -65,7 +65,11 @@ public class StockInfoTests
         var limitDown = (Utils.Parse(yesterdayClose) * 0.9).ToString("F2");
         fields[47] = limitUp;
         fields[48] = limitDown;
-        for (int i = 49; i < 82; i++) fields[i] = "";
+        for (var i = 49; i < 82; i++)
+        {
+            fields[i] = "";
+        }
+
         fields[82] = currency;
 
         var inner = string.Join("~", fields);
@@ -402,7 +406,11 @@ public class StockInfoTests
         fields[6] = "1000";
         fields[7] = "0";
         fields[8] = "0";
-        for (int i = 9; i < 30; i++) fields[i] = "";
+        for (var i = 9; i < 30; i++)
+        {
+            fields[i] = "";
+        }
+
         fields[30] = "20250526120000";
         fields[31] = "0.50";
         fields[32] = "5.26";

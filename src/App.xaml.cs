@@ -34,8 +34,8 @@ public partial class App : Application
     public const string ProductName = "iNeedMyMoneyBack";
     public const string ProductFileName = ProductName + ".exe";
     public const string ProductCompany = "Pdone Technology Ltd.";
-    public const string ProductVersion = "2.3";
-    public const string Copyright = "Copyright © pdone 2025";
+    public const string ProductVersion = "2.4";
+    public const string Copyright = "Copyright © pdone 2026";
 
     #region 检查实例是否已存在 存在则将其显示到前台
     private static Mutex _mutex;

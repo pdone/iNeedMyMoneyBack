@@ -189,8 +189,16 @@ public class StockConfigArray : List<StockConfig>
         var result = new StockConfigArray();
         foreach (var index in ImportantIndexs)
         {
-            if (index.Code.StartsWith("us") && !enableUS) continue;
-            if (index.Code.StartsWith("hk") && !enableHK) continue;
+            if (index.Code.StartsWith("us") && !enableUS)
+            {
+                continue;
+            }
+
+            if (index.Code.StartsWith("hk") && !enableHK)
+            {
+                continue;
+            }
+
             result.Add(index);
         }
         return result;
@@ -475,7 +483,10 @@ public class Config
         {
             var existingKeys = new HashSet<string>(conf.ExtendControls.Select(x => x.Key));
             var insertIndex = conf.ExtendControls.FindIndex(x => x.Key == "ui_all_stock_day_make");
-            if (insertIndex < 0) insertIndex = conf.ExtendControls.Count;
+            if (insertIndex < 0)
+            {
+                insertIndex = conf.ExtendControls.Count;
+            }
 
             foreach (var index in StockConfigArray.ImportantIndexs)
             {
@@ -495,7 +506,11 @@ public class Config
             if (!conf.FieldControls.ContainsKey("ui_fieldname"))
             {
                 var newDict = new Dictionary<string, bool> { { "ui_fieldname", false } };
-                foreach (var kvp in conf.FieldControls) newDict[kvp.Key] = kvp.Value;
+                foreach (var kvp in conf.FieldControls)
+                {
+                    newDict[kvp.Key] = kvp.Value;
+                }
+
                 conf.FieldControls = newDict;
             }
             conf.FieldNewLines ??= new Dictionary<string, bool>();
@@ -518,7 +533,11 @@ public class Config
                          ?? new ExtendControlObj(Utils.StockIndexPrefix + x.Code))
                 .ToList();
             var personalIdx = otherItems.FindIndex(x => x.Key.StartsWith("ui_all_"));
-            if (personalIdx < 0) personalIdx = otherItems.Count;
+            if (personalIdx < 0)
+            {
+                personalIdx = otherItems.Count;
+            }
+
             otherItems.InsertRange(personalIdx, orderedIndexItems);
             conf.ExtendControls = otherItems;
 

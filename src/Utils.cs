@@ -426,6 +426,52 @@ public static class Utils
         // 如果都不满足，则不在交易时间内
         return false;
     }
+
+    /// <summary>
+    /// 判断当前时间是否处于美股交易时段（美东时间 9:30-16:00，周一至周五）。
+    /// 使用 TimeZoneInfo 转换到美东时区，夏令时（DST）会自动切换。
+    /// 不检查美国法定节假日。
+    /// </summary>
+    public static bool IsUSMarketOpen()
+    {
+        try
+        {
+            var et = TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time");
+            var nowEt = TimeZoneInfo.ConvertTime(DateTime.Now, et);
+            if (nowEt.DayOfWeek < DayOfWeek.Monday || nowEt.DayOfWeek > DayOfWeek.Friday)
+            {
+                return false;
+            }
+            var start = new DateTime(nowEt.Year, nowEt.Month, nowEt.Day, 9, 30, 0);
+            var end = new DateTime(nowEt.Year, nowEt.Month, nowEt.Day, 16, 0, 0);
+            return nowEt >= start && nowEt <= end;
+        }
+        catch
+        {
+            // 时区信息不可用时退化为 false，避免异常影响主流程
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// 判断当前时间是否处于港股交易时段（香港时间 9:30-12:00、13:00-16:00，周一至周五）。
+    /// 香港与北京同处 UTC+8 且无夏令时，直接用本地时间判断。
+    /// 不检查香港法定节假日。
+    /// </summary>
+    public static bool IsHKMarketOpen()
+    {
+        var now = DateTime.Now;
+        if (now.DayOfWeek < DayOfWeek.Monday || now.DayOfWeek > DayOfWeek.Friday)
+        {
+            return false;
+        }
+        var morningStart = new DateTime(now.Year, now.Month, now.Day, 9, 30, 0);
+        var morningEnd = new DateTime(now.Year, now.Month, now.Day, 12, 0, 0);
+        var afternoonStart = new DateTime(now.Year, now.Month, now.Day, 13, 0, 0);
+        var afternoonEnd = new DateTime(now.Year, now.Month, now.Day, 16, 0, 0);
+        return (now >= morningStart && now <= morningEnd) ||
+               (now >= afternoonStart && now <= afternoonEnd);
+    }
     #endregion
 
     #region 全局快捷键
